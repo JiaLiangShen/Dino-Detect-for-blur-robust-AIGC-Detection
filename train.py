@@ -1,5 +1,5 @@
 """
-分布式Teacher-Student训练脚本 - 改进版
+分布式Teacher-Student训练脚本 
 - 更好的DinoV3 Adapter
 - 全面autocast半精度训练
 - 优化的训练流程
