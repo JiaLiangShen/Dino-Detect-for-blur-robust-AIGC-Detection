@@ -1,4 +1,8 @@
 """
+The bakcbone model of this training process can be found and downloaded in this website:
+https://modelscope.cn/models/facebook/dinov3-vitb16-pretrain-lvd1689m
+
+This python file is:
 A distributed Teacher-Student training framework using DinoV3 as backbone.
 """
 
