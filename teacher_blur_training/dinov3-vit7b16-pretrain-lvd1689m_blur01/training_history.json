@@ -1,0 +1,29 @@
+{
+  "history": {
+    "train_loss": [
+      0.020610947434495135,
+      0.0053939695765332476,
+      0.0034680482817859184
+    ],
+    "train_acc": [
+      97.76938833841463,
+      99.39828267911585,
+      99.5900223894817
+    ]
+  },
+  "model_config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m",
+    "projection_dim": 512
+  },
+  "training_config": {
+    "world_size": 8,
+    "batch_size": 2048,
+    "epochs": 3,
+    "blur_mode": "gaussian",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ]
+  }
+}

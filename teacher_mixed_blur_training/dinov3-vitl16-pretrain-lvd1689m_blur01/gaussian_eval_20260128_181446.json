@@ -1,0 +1,135 @@
+{
+  "config": {
+    "model_path": "teacher_mixed_blur_training/dinov3-vitl16-pretrain-lvd1689m_blur01/best_teacher_blur_model.pth",
+    "blur_mode": "both",
+    "batch_size": 256
+  },
+  "results": {
+    "reddit": {
+      "no_blur": {
+        "dataset_name": "reddit",
+        "blur_mode": "no_blur",
+        "accuracy": 0.8073333333333333,
+        "precision": 0.7349643221202854,
+        "recall": 0.9613333333333334,
+        "f1_score": 0.8330444829578278,
+        "confusion_matrix": [
+          [
+            490,
+            260
+          ],
+          [
+            29,
+            721
+          ]
+        ],
+        "total_samples": 1500,
+        "time_seconds": 33.69081926345825
+      },
+      "global": {
+        "dataset_name": "reddit",
+        "blur_mode": "global",
+        "accuracy": 0.676,
+        "precision": 0.6291585127201565,
+        "recall": 0.8573333333333333,
+        "f1_score": 0.7257336343115124,
+        "confusion_matrix": [
+          [
+            371,
+            379
+          ],
+          [
+            107,
+            643
+          ]
+        ],
+        "total_samples": 1500,
+        "time_seconds": 41.40785574913025
+      }
+    },
+    "facebook": {
+      "no_blur": {
+        "dataset_name": "facebook",
+        "blur_mode": "no_blur",
+        "accuracy": 0.803125,
+        "precision": 0.7276995305164319,
+        "recall": 0.96875,
+        "f1_score": 0.8310991957104558,
+        "confusion_matrix": [
+          [
+            102,
+            58
+          ],
+          [
+            5,
+            155
+          ]
+        ],
+        "total_samples": 320,
+        "time_seconds": 6.049190521240234
+      },
+      "global": {
+        "dataset_name": "facebook",
+        "blur_mode": "global",
+        "accuracy": 0.696875,
+        "precision": 0.64,
+        "recall": 0.9,
+        "f1_score": 0.7480519480519481,
+        "confusion_matrix": [
+          [
+            79,
+            81
+          ],
+          [
+            16,
+            144
+          ]
+        ],
+        "total_samples": 320,
+        "time_seconds": 11.475459098815918
+      }
+    },
+    "twitter": {
+      "no_blur": {
+        "dataset_name": "twitter",
+        "blur_mode": "no_blur",
+        "accuracy": 0.8598574821852731,
+        "precision": 0.8364197530864198,
+        "recall": 0.9783393501805054,
+        "f1_score": 0.9018302828618968,
+        "confusion_matrix": [
+          [
+            91,
+            53
+          ],
+          [
+            6,
+            271
+          ]
+        ],
+        "total_samples": 421,
+        "time_seconds": 12.368611335754395
+      },
+      "global": {
+        "dataset_name": "twitter",
+        "blur_mode": "global",
+        "accuracy": 0.8076009501187649,
+        "precision": 0.8081761006289309,
+        "recall": 0.927797833935018,
+        "f1_score": 0.8638655462184874,
+        "confusion_matrix": [
+          [
+            83,
+            61
+          ],
+          [
+            20,
+            257
+          ]
+        ],
+        "total_samples": 421,
+        "time_seconds": 18.966181755065918
+      }
+    }
+  }
+}

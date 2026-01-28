@@ -71,8 +71,8 @@ def setup_distributed(rank, world_size, backend=None):
     
     if backend == 'nccl':
         os.environ['NCCL_TIMEOUT'] = '1800'
-        os.environ['NCCL_BLOCKING_WAIT'] = '1'
-        os.environ['NCCL_ASYNC_ERROR_HANDLING'] = '1'
+        os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
+        os.environ['TORCH_NCCL_ASYNC_ERROR_HANDLING'] = '1'
         os.environ['NCCL_SOCKET_IFNAME'] = '^lo,docker'
         os.environ['NCCL_IB_DISABLE'] = '1'
         os.environ['NCCL_P2P_DISABLE'] = '1'
@@ -85,8 +85,8 @@ def setup_distributed(rank, world_size, backend=None):
     if backend == 'nccl':
         if not torch.cuda.is_available():
             raise RuntimeError("NCCL backend requires CUDA, but CUDA is not available")
-        torch.cuda.set_device(rank)
-        torch.cuda.empty_cache()
+        # torch.cuda.set_device(rank)
+        # torch.cuda.empty_cache()
     
     dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
     
@@ -110,12 +110,12 @@ def setup_logging(rank):
 # 配置参数
 # ===============================
 # 模型配置
-DINOV3_MODEL_ID = "/home/work/xueyunqi/cpvr2026_dinov3/dinov3-vit7b16-pretrain-lvd1689m"
+DINOV3_MODEL_ID = "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
 
 # 数据配置
-TRAIN_ROOT_FOLDER = "/home/work/xueyunqi/datasets/GenImage/stable_diffusion_v_1_4/imagenet_ai_0419_sdv4"
-TEST_REAL_FOLDER = "/home/work/xueyunqi/datasets/GenImage/stable_diffusion_v_1_4/imagenet_ai_0419_sdv4/train/nature"
-TEST_FAKE_FOLDER = "/home/work/xueyunqi/datasets/GenImage/stable_diffusion_v_1_4/imagenet_ai_0419_sdv4/train/ai"
+TRAIN_ROOT_FOLDER = "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4"
+TEST_REAL_FOLDER = "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4/train/nature"
+TEST_FAKE_FOLDER = "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4/train/ai"
 
 # 训练配置
 LEARNING_RATE = 1e-4
@@ -126,9 +126,19 @@ NUM_WORKERS = 4
 # ===============================
 BLUR_PROB = 0.2
 BLUR_STRENGTH_RANGE = (0.1, 0.3)
-BLUR_MODE = "gaussian"  # 修改这里
+BLUR_MODE = "gaussian"
 
-DATASET_NAME = "teacher_blur_training"
+# ===============================
+# 辅助函数
+# ===============================
+def create_experiment_output_dir(args):
+    """根据参数创建实验输出目录"""
+    model_name = os.path.basename(args.dinov3_model_id)
+    blur_prob_str = str(args.blur_prob).replace('.', '')
+    experiment_name = f"{model_name}_blur{blur_prob_str}"
+    output_dir = os.path.join(args.output_dir, experiment_name)
+    return output_dir
+
 # ===============================
 # Blur 工具函数 (替换整个区块)
 # ===============================
@@ -159,8 +169,8 @@ def apply_gaussian_blur_batch_efficient(images, strength):
 def get_train_transforms():
     """训练数据增强"""
     return transforms.Compose([
-        transforms.Resize((512, 512)),
-        transforms.RandomCrop((448, 448)),
+        transforms.Resize((224, 224)),
+        # transforms.RandomCrop((448, 448)),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
     ])
@@ -596,7 +606,7 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
     # 获取实际模型
     actual_model = model.module if hasattr(model, 'module') else model
     
-    model_dir = f"checkpoints/teacher/{DATASET_NAME}"
+    model_dir = create_experiment_output_dir(args)
     
     for epoch in range(args.epochs):
         if rank == 0:
@@ -710,7 +720,7 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
             
             if rank == 0:
                 os.makedirs(model_dir, exist_ok=True)
-                model_path = os.path.join(model_dir, '0.2blur_best_teacher_blur_model.pth')
+                model_path = os.path.join(model_dir, 'best_teacher_blur_model.pth')
                 
                 model_state_dict = actual_model.state_dict()
                 
@@ -723,10 +733,11 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
                     'best_acc': best_acc,
                     'history': history,
                     'config': {
+                        'dinov3_model_id': args.dinov3_model_id,
                         'projection_dim': PROJECTION_DIM,
                         'world_size': world_size,
                         'blur_mode': BLUR_MODE,
-                        'blur_prob': BLUR_PROB
+                        'blur_prob': args.blur_prob
                     }
                 }, model_path)
                 
@@ -815,7 +826,7 @@ def evaluate_model(model, test_loader, output_dir, rank, world_size, device):
 # ===============================
 # 主训练函数
 # ===============================
-def main_distributed(rank, world_size, args):
+def main_distributed(rank, local_rank, world_size, args):
     """分布式训练主函数"""
     start_time = time.time()
     
@@ -826,8 +837,8 @@ def main_distributed(rank, world_size, args):
         
         # 设置设备
         if torch.cuda.is_available():
-            torch.cuda.set_device(local_rank) # 改为 local_rank
-            device = torch.device(f'cuda:{local_rank}') # 改为 local_rank
+            torch.cuda.set_device(local_rank)
+            device = torch.device(f'cuda:{local_rank}')
             torch.cuda.empty_cache()
             if rank == 0:
                 print(f"Using CUDA devices for distributed training on {world_size} GPUs")
@@ -843,12 +854,15 @@ def main_distributed(rank, world_size, args):
             print(f"{'='*60}")
             print("MODEL VERIFICATION")
             print(f"{'='*60}")
-            print(f"DinoV3 model path: {DINOV3_MODEL_ID}")
+            print(f"DinoV3 model path: {args.dinov3_model_id}")
             
-            if not os.path.exists(DINOV3_MODEL_ID):
-                raise FileNotFoundError(f"DinoV3 model directory not found: {DINOV3_MODEL_ID}")
+            if not os.path.exists(args.dinov3_model_id):
+                raise FileNotFoundError(f"DinoV3 model directory not found: {args.dinov3_model_id}")
             
             print("✓ DinoV3 model path verified")
+        
+        # 创建实验输出目录
+        output_dir = create_experiment_output_dir(args)
         
         if rank == 0:
             print(f"{'='*60}")
@@ -860,7 +874,7 @@ def main_distributed(rank, world_size, args):
         
         # 创建输出目录
         if rank == 0:
-            os.makedirs(args.output_dir, exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
         
         # 创建数据变换
         train_transform = get_train_transforms()
@@ -874,7 +888,7 @@ def main_distributed(rank, world_size, args):
             root_folder=TRAIN_ROOT_FOLDER,
             transform=train_transform,
             max_samples_per_class=None,
-            blur_prob=BLUR_PROB,
+            blur_prob=args.blur_prob,
             blur_strength_range=BLUR_STRENGTH_RANGE,
             blur_mode=BLUR_MODE,
             enable_strong_aug=False
@@ -890,7 +904,7 @@ def main_distributed(rank, world_size, args):
         
         try:
             model = ImprovedDinoV3Adapter(
-                model_path=DINOV3_MODEL_ID,
+                model_path=args.dinov3_model_id,
                 num_classes=2,
                 projection_dim=PROJECTION_DIM,
                 adapter_layers=3,
@@ -958,7 +972,7 @@ def main_distributed(rank, world_size, args):
             training_info = {
                 'history': history,
                 'model_config': {
-                    'dinov3_model_id': DINOV3_MODEL_ID,
+                    'dinov3_model_id': args.dinov3_model_id,
                     'projection_dim': PROJECTION_DIM
                 },
                 'training_config': {
@@ -966,23 +980,23 @@ def main_distributed(rank, world_size, args):
                     'batch_size': args.batch_size * world_size,
                     'epochs': args.epochs,
                     'blur_mode': BLUR_MODE,
-                    'blur_prob': BLUR_PROB,
+                    'blur_prob': args.blur_prob,
                     'blur_strength_range': BLUR_STRENGTH_RANGE
                 }
             }
             
-            with open(os.path.join(args.output_dir, 'training_history.json'), 'w') as f:
+            with open(os.path.join(output_dir, 'training_history.json'), 'w') as f:
                 json.dump(training_info, f, indent=2)
             
             print("Training completed!")
-            print(f"Results saved to: {args.output_dir}")
+            print(f"Results saved to: {output_dir}")
             # 保存最终模型
             print("Saving final model checkpoint...")
-            final_model_path = os.path.join(args.output_dir, "0.2blur_final_teacher_blur_model.pth")
+            final_model_path = os.path.join(output_dir, "final_teacher_blur_model.pth")
             torch.save(model.module.state_dict(), final_model_path)
             print(f"Final model saved to: {final_model_path}")
             
-            save_corrupted_images_report(args.output_dir, rank)
+            save_corrupted_images_report(output_dir, rank)
         
     except Exception as e:
         print(f"[Rank {rank}] Critical error in main_distributed: {e}")
@@ -1007,7 +1021,7 @@ def run_distributed_training(args):
     
     print(f"Rank: {rank}, World Size: {world_size}, Local Rank: {local_rank}")
     
-    main_distributed(rank, local_rank,world_size, args)
+    main_distributed(rank, local_rank, world_size, args)
 
 # ===============================
 # 命令行接口
@@ -1015,8 +1029,12 @@ def run_distributed_training(args):
 def parse_args():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description='Teacher Training with Blur Augmentation')
-    parser.add_argument('--num-gpus', type=int, default=4,
-                        help='Number of GPUs to use (default: 1)')
+    parser.add_argument('--dinov3-model-id', type=str, default=DINOV3_MODEL_ID,
+                        help='Path to DinoV3 model')
+    parser.add_argument('--blur-prob', type=float, default=BLUR_PROB,
+                        help='Probability of applying blur augmentation')
+    parser.add_argument('--num-gpus', type=int, default=8,
+                        help='Number of GPUs to use (default: 8)')
     parser.add_argument('--epochs', type=int, default=3,
                         help='Number of training epochs')
     parser.add_argument('--batch-size', type=int, default=256,
@@ -1033,7 +1051,7 @@ if __name__ == "__main__":
             run_distributed_training(args)
         else:
             print("Running in single process mode")
-            main_distributed(0,0, 1, args)
+            main_distributed(0, 0, 1, args)
     except KeyboardInterrupt:
         print("Training interrupted by user")
         if dist.is_initialized():
@@ -1044,16 +1062,3 @@ if __name__ == "__main__":
         traceback.print_exc()
         if dist.is_initialized():
             cleanup_distributed()
-
-
-"""
-torchrun \
-    --nproc_per_node=8 \
-    --nnodes=2 \
-    --node_rank=0 \
-    --master_addr= 您的服务器IP \
-    --master_port=8050 \
-    gaussian_direct_train.py \
-    --batch-size 32 \
-    --output-dir ./output_distributed
-"""

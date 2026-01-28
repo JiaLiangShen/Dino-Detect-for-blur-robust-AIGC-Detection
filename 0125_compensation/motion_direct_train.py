@@ -71,8 +71,8 @@ def setup_distributed(rank, world_size, backend=None):
     
     if backend == 'nccl':
         os.environ['NCCL_TIMEOUT'] = '1800'
-        os.environ['NCCL_BLOCKING_WAIT'] = '1'
-        os.environ['NCCL_ASYNC_ERROR_HANDLING'] = '1'
+        os.environ['TORCH_NCCL_BLOCKING_WAIT'] = '1'
+        os.environ['TORCH_NCCL_ASYNC_ERROR_HANDLING'] = '1'
         os.environ['NCCL_SOCKET_IFNAME'] = '^lo,docker'
         os.environ['NCCL_IB_DISABLE'] = '1'
         os.environ['NCCL_P2P_DISABLE'] = '1'
@@ -111,10 +111,10 @@ def setup_logging(rank):
 # 配置参数
 # ===============================
 # 模型配置
-DINOV3_MODEL_ID = "/home/work/xueyunqi/dinov3-vit7b16-pretrain-lvd1689m"
+DINOV3_MODEL_ID = "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
 
 # 数据配置
-TRAIN_ROOT_FOLDER = "/home/work/xueyunqi/11ar_datasets/extracted"
+TRAIN_ROOT_FOLDER = "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4"
 # 移除了 TEST 相关路径配置
 
 # 训练配置
@@ -127,10 +127,18 @@ BLUR_PROB = 0.2
 BLUR_STRENGTH_RANGE = (0.1, 0.3)
 BLUR_MODE = "mixed"
 MIXED_MODE_RATIO = 0.5
-CCMBA_DATA_DIR = "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train"
+CCMBA_DATA_DIR = "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44"
 
-# 数据集名称
-DATASET_NAME = "teacher_mixed_blur_training_notest"
+# ===============================
+# 辅助函数
+# ===============================
+def create_experiment_output_dir(args):
+    """根据参数创建实验输出目录"""
+    model_name = os.path.basename(args.dinov3_model_id)
+    blur_prob_str = str(args.blur_prob).replace('.', '')
+    experiment_name = f"{model_name}_blur{blur_prob_str}"
+    output_dir = os.path.join(args.output_dir, experiment_name)
+    return output_dir
 
 # ===============================
 # Motion Blur工具函数
@@ -187,8 +195,8 @@ def apply_mixed_blur_enhanced(original_tensor, ccmba_loader, image_name, categor
         if blurred_pil is not None:
             ccmba_transform_start = time.time()
             transform = transforms.Compose([
-                transforms.Resize((512, 512)),
-                transforms.RandomCrop((448, 448)),
+                transforms.Resize((224, 224)),
+                # transforms.RandomCrop((448, 448)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
             ])
@@ -233,8 +241,8 @@ def apply_motion_blur_batch(images, strength):
 def get_train_transforms():
     """训练数据增强"""
     return transforms.Compose([
-        transforms.Resize((512, 512)),
-        transforms.RandomCrop((448, 448)),
+        transforms.Resize((224, 224)),
+        # transforms.RandomCrop((448, 448)),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
     ])
@@ -646,8 +654,8 @@ class AdapterDataset(Dataset):
                 if category_folder.is_dir():
                     category_name = category_folder.name
                     
-                    real_subfolder = category_folder / "0_real"
-                    fake_subfolder = category_folder / "1_fake"
+                    real_subfolder = category_folder / "nature"
+                    fake_subfolder = category_folder / "ai"
                     
                     if real_subfolder.exists():
                         for img_file in real_subfolder.rglob('*'):
@@ -835,7 +843,7 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
     # 获取实际模型
     actual_model = model.module if hasattr(model, 'module') else model
     
-    model_dir = f"checkpoints/teacher/{DATASET_NAME}"
+    model_dir = create_experiment_output_dir(args)
     
     for epoch in range(args.epochs):
         if rank == 0:
@@ -949,7 +957,7 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
             
             if rank == 0:
                 os.makedirs(model_dir, exist_ok=True)
-                model_path = os.path.join(model_dir, '0.5blur_best_teacher_blur_model.pth')
+                model_path = os.path.join(model_dir, 'best_teacher_blur_model.pth')
                 
                 model_state_dict = actual_model.state_dict()
                 
@@ -962,10 +970,11 @@ def train_teacher(model, train_loader, optimizer, scheduler, scaler, rank, world
                     'best_acc': best_acc,
                     'history': history,
                     'config': {
+                        'dinov3_model_id': args.dinov3_model_id,
                         'projection_dim': PROJECTION_DIM,
                         'world_size': world_size,
                         'blur_mode': BLUR_MODE,
-                        'blur_prob': BLUR_PROB
+                        'blur_prob': args.blur_prob
                     }
                 }, model_path)
                 
@@ -1013,13 +1022,16 @@ def main_distributed(rank, local_rank, world_size, args):
             print(f"{'='*60}")
             print("MODEL VERIFICATION")
             print(f"{'='*60}")
-            print(f"DinoV3 model path: {DINOV3_MODEL_ID}")
+            print(f"DinoV3 model path: {args.dinov3_model_id}")
             
-            if not os.path.exists(DINOV3_MODEL_ID):
-                raise FileNotFoundError(f"DinoV3 model directory not found: {DINOV3_MODEL_ID}")
+            if not os.path.exists(args.dinov3_model_id):
+                raise FileNotFoundError(f"DinoV3 model directory not found: {args.dinov3_model_id}")
             
             print("✓ DinoV3 model path verified")
         
+        # 创建实验输出目录
+        output_dir = create_experiment_output_dir(args)
+
         if rank == 0:
             print(f"{'='*60}")
             print("TEACHER TRAINING WITH BLUR AUGMENTATION")
@@ -1031,7 +1043,7 @@ def main_distributed(rank, local_rank, world_size, args):
         
         # 创建输出目录
         if rank == 0:
-            os.makedirs(args.output_dir, exist_ok=True)
+            os.makedirs(output_dir, exist_ok=True)
         
         # 创建数据变换
         train_transform = get_train_transforms()
@@ -1044,7 +1056,7 @@ def main_distributed(rank, local_rank, world_size, args):
             root_folder=TRAIN_ROOT_FOLDER,
             transform=train_transform,
             max_samples_per_class=None,
-            blur_prob=BLUR_PROB,
+            blur_prob=args.blur_prob,
             blur_strength_range=BLUR_STRENGTH_RANGE,
             blur_mode=BLUR_MODE,
             mixed_mode_ratio=MIXED_MODE_RATIO,
@@ -1064,7 +1076,7 @@ def main_distributed(rank, local_rank, world_size, args):
         
         try:
             model = ImprovedDinoV3Adapter(
-                model_path=DINOV3_MODEL_ID,
+                model_path=args.dinov3_model_id,
                 num_classes=2,
                 projection_dim=PROJECTION_DIM,
                 adapter_layers=3,
@@ -1133,7 +1145,7 @@ def main_distributed(rank, local_rank, world_size, args):
             training_info = {
                 'history': history,
                 'model_config': {
-                    'dinov3_model_id': DINOV3_MODEL_ID,
+                    'dinov3_model_id': args.dinov3_model_id,
                     'projection_dim': PROJECTION_DIM
                 },
                 'training_config': {
@@ -1141,24 +1153,24 @@ def main_distributed(rank, local_rank, world_size, args):
                     'batch_size': args.batch_size * world_size,
                     'epochs': args.epochs,
                     'blur_mode': BLUR_MODE,
-                    'blur_prob': BLUR_PROB,
+                    'blur_prob': args.blur_prob,
                     'blur_strength_range': BLUR_STRENGTH_RANGE
                 }
             }
             
-            with open(os.path.join(args.output_dir, 'training_history.json'), 'w') as f:
+            with open(os.path.join(output_dir, 'training_history.json'), 'w') as f:
                 json.dump(training_info, f, indent=2)
             
             print("Training completed!")
-            print(f"Results saved to: {args.output_dir}")
+            print(f"Results saved to: {output_dir}")
             
             # 保存最终模型
             print("Saving final model checkpoint...")
-            final_model_path = os.path.join(args.output_dir, "0.5blur_final_teacher_blur_model.pth")
+            final_model_path = os.path.join(output_dir, "final_teacher_blur_model.pth")
             torch.save(model.module.state_dict(), final_model_path)
             print(f"Final model saved to: {final_model_path}")
             
-            save_corrupted_images_report(args.output_dir, rank)
+            save_corrupted_images_report(output_dir, rank)
         
     except Exception as e:
         print(f"[Rank {rank}] Critical error in main_distributed: {e}")
@@ -1192,13 +1204,17 @@ def run_distributed_training(args):
 def parse_args():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description='Teacher Training with Blur Augmentation')
-    parser.add_argument('--num-gpus', type=int, default=4,
-                        help='Number of GPUs to use (default: 1)')
+    parser.add_argument('--dinov3-model-id', type=str, default=DINOV3_MODEL_ID,
+                        help='Path to DinoV3 model')
+    parser.add_argument('--blur-prob', type=float, default=BLUR_PROB,
+                        help='Probability of applying blur augmentation')
+    parser.add_argument('--num-gpus', type=int, default=8,
+                        help='Number of GPUs to use (default: 8)')
     parser.add_argument('--epochs', type=int, default=10,
                         help='Number of training epochs')
-    parser.add_argument('--batch-size', type=int, default=32,
+    parser.add_argument('--batch-size', type=int, default=256,
                         help='Batch size per GPU')
-    parser.add_argument('--output-dir', type=str, default="teacher_blur_training",
+    parser.add_argument('--output-dir', type=str, default="teacher_mixed_blur_training",
                         help='Output directory for models and logs')
     return parser.parse_args()
 
@@ -1222,3 +1238,4 @@ if __name__ == "__main__":
         traceback.print_exc()
         if dist.is_initialized():
             cleanup_distributed()
+            
