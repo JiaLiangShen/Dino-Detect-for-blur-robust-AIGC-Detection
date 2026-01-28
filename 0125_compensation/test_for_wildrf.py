@@ -33,21 +33,109 @@ BLUR_PROB = 1.0
 BLUR_STRENGTH_RANGE = (0.1, 0.3)
 
 # 3. 测试集配置 （我看了一下，wildrf里面三个子集全部都是simple的，您看着修改文件夹路径即可）
+# TEST_DATASETS = {
+#     'reddit': {
+#         'type': 'simple',
+#         'real_folder': "/data/app.e0016372/WildRF/test/reddit/0_real",
+#         'fake_folder': "/data/app.e0016372/WildRF/test/reddit/1_fake"
+#     },
+#     'facebook': {
+#         'type': 'simple',
+#         'real_folder': "/data/app.e0016372/WildRF/test/facebook/0_real",
+#         'fake_folder': "/data/app.e0016372/WildRF/test/facebook/1_fake"
+#     },
+#     'twitter': {
+#         'type': 'simple',
+#         'real_folder': "/data/app.e0016372/WildRF/test/twitter/0_real",
+#         'fake_folder': "/data/app.e0016372/WildRF/test/twitter/1_fake"
+#     }
+# }
+
 TEST_DATASETS = {
-    'reddit': {
-        'type': 'simple',
-        'real_folder': "/data/app.e0016372/WildRF/test/reddit/0_real",
-        'fake_folder': "/data/app.e0016372/WildRF/test/reddit/1_fake"
+    'cyclegan': {
+        'type': 'multi_class',
+        'base_path': '/data/app.e0016372/11ar_datasets/test/cyclegan',
+        'classes': None  # None 表示自动发现所有类别
     },
-    'facebook': {
-        'type': 'simple',
-        'real_folder': "/data/app.e0016372/WildRF/test/facebook/0_real",
-        'fake_folder': "/data/app.e0016372/WildRF/test/facebook/1_fake"
+    'progan': {
+        'type': 'multi_class',
+        'base_path': '/data/app.e0016372/11ar_datasets/test/progan',
+        'classes': None
     },
-    'twitter': {
+    'stylegan2': {
+        'type': 'multi_class',
+        'base_path': '/data/app.e0016372/11ar_datasets/test/stylegan2',
+        'classes': None
+    },
+    'stylegan': {
+        'type': 'multi_class',
+        'base_path': '/data/app.e0016372/11ar_datasets/test/stylegan',
+        'classes': None
+    },
+    'adm': {
         'type': 'simple',
-        'real_folder': "/data/app.e0016372/WildRF/test/twitter/0_real",
-        'fake_folder': "/data/app.e0016372/WildRF/test/twitter/1_fake"
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/ADM/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/ADM/1_fake'
+    },
+    'vqdm': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/VQDM/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/VQDM/1_fake'
+    },
+    'sdv14': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/stable_diffusion_v_1_4/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/stable_diffusion_v_1_4/1_fake'
+    },
+    'sdv15': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/stable_diffusion_v_1_5/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/stable_diffusion_v_1_5/1_fake'
+    },
+    'stargan': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/stargan/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/stargan/1_fake'
+    },
+    'wukong': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/wukong/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/wukong/1_fake'
+    },
+    'dalle2': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/datasets/AIGCDetectionBenchmark/AIGCDetectionBenchMark/test/DALLE2/0_real',
+        'fake_folder': '/data/app.e0016372/datasets/AIGCDetectionBenchmark/AIGCDetectionBenchMark/test/DALLE2/1_fake'
+    },
+    'midjourney': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/Midjourney/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/Midjourney/1_fake'
+    },
+    'biggan': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/biggan/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/biggan/1_fake'
+    },
+    'sd-xl': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/sd_xl/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/sd_xl/1_fake'
+    },
+    'gaugan': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/gaugan/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/gaugan/1_fake'
+    },
+    'whichfaceisreal': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/whichfaceisreal/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/whichfaceisreal/1_fake'
+    },
+    'glide': {
+        'type': 'simple',
+        'real_folder': '/data/app.e0016372/11ar_datasets/test/Glide/0_real',
+        'fake_folder': '/data/app.e0016372/11ar_datasets/test/Glide/1_fake'
     }
 }
 

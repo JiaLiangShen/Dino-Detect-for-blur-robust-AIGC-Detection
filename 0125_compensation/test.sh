@@ -3,8 +3,8 @@
 # 定义模型ID数组
 model_ids=(
     "/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m"
-    # "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
-    # "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m"
+    "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
+    "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m"
 )
 
 # 定义路径模板数组
@@ -33,3 +33,8 @@ for model_id in "${model_ids[@]}"; do
     done
 done
 echo "All runs completed!"
+
+export https_proxy="http://172.19.92.23:13128"
+git add .
+git commit -m "Auto-commit: DINOv3 model testing"
+git push
