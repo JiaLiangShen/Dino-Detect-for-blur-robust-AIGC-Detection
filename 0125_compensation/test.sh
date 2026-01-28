@@ -2,8 +2,9 @@
 
 # 定义模型ID数组
 model_ids=(
-    "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
-    "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m"
+    "/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m"
+    # "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m"
+    # "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m"
 )
 
 # 定义路径模板数组
@@ -29,10 +30,6 @@ for model_id in "${model_ids[@]}"; do
         python 0125_compensation/test_for_wildrf.py \
             --model_path "$model_path" \
             --dinov3_model_id "$model_id"
-            
-        echo "Waiting for 1 minute before next run..."
-        sleep 60
-        echo ""
     done
 done
 echo "All runs completed!"
