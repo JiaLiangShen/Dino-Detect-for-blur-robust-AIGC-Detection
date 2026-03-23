@@ -1,0 +1,33 @@
+{
+  "experiment_name": "release_eval",
+  "backbone_path": "/path/to/dinov3-backbone",
+  "teacher_checkpoint": "/path/to/best_teacher.pth",
+  "student_checkpoint": "/path/to/best_student.pth",
+  "output_dir": "outputs",
+  "batch_size": 128,
+  "num_workers": 2,
+  "seed": 42,
+  "num_classes": 2,
+  "image_size": 512,
+  "crop_size": 448,
+  "projection_dim": 512,
+  "adapter_layers": 3,
+  "dropout": 0.1,
+  "model_mode": "both",
+  "blur_mode": "both",
+  "blur_strength_range": [0.1, 0.3],
+  "datasets": [
+    {
+      "name": "progan",
+      "type": "multi_class",
+      "base_path": "/path/to/test/progan",
+      "classes": null
+    },
+    {
+      "name": "adm",
+      "type": "simple",
+      "real_folder": "/path/to/test/ADM/0_real",
+      "fake_folder": "/path/to/test/ADM/1_fake"
+    }
+  ]
+}

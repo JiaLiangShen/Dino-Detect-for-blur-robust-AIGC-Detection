@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dino-detect"
+version = "0.1.0"
+description = "Public release structure for DINO-Detect: Towards Blur-Robust AI-Generated Image Detection."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "opencv-python>=4.8",
+  "Pillow>=10.0",
+  "scikit-learn>=1.4",
+  "torch>=2.1",
+  "torchvision>=0.16",
+  "transformers>=4.40",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
