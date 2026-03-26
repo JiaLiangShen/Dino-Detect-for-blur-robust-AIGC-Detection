@@ -110,7 +110,7 @@ Evaluation supports both:
 @article{dinodetect2026,
   title   = {DINO-Detect: Towards Blur-Robust AI-Generated Image Detection},
   author  = {Anonymous},
-  journal = {ICML 2026 submission},
+  journal = {},
   year    = {2026}
 }
 ```
