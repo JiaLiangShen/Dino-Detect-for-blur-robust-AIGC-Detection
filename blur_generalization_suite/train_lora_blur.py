@@ -20,6 +20,7 @@ from blur_generalization_suite.common import (
     cleanup_distributed,
     count_trainable_parameters,
     ensure_dir,
+    extract_trainable_state_dict,
     parse_distributed_env,
     save_json,
     set_seed,
@@ -29,6 +30,7 @@ from blur_generalization_suite.common import (
 from blur_generalization_suite.data_utils import BinaryFolderDataset, build_train_transform
 from blur_generalization_suite.model_zoo import (
     DEFAULT_LORA_BACKBONES,
+    LORA_BACKBONE_SPECS,
     FocalLoss,
     create_lora_model_from_config,
     resolve_preprocess_config,
@@ -38,6 +40,10 @@ from blur_generalization_suite.model_zoo import (
 
 DEFAULT_TRAIN_ROOT = "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4"
 DEFAULT_CCMBA_DATA_DIR = "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train"
+
+
+def normalize_model_family(model_family: str) -> str:
+    return "eva_giant_lora" if model_family == "vit_large_lora" else model_family
 
 
 def experiment_name(args: argparse.Namespace) -> str:
@@ -110,6 +116,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
     if device.type == "cuda":
         torch.cuda.set_device(local_rank)
 
+    backbone_spec = LORA_BACKBONE_SPECS[args.model_family]
     preprocess_config = resolve_preprocess_config(
         model_family=args.model_family,
         backbone_path=args.backbone_path,
@@ -150,6 +157,9 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
     model_config = {
         "model_family": args.model_family,
         "backbone_path": args.backbone_path,
+        "backbone_repo_id": backbone_spec.repo_id,
+        "backbone_local_dir": backbone_spec.local_dir,
+        "backbone_loader_backend": backbone_spec.loader_backend,
         "num_classes": 2,
         "projection_dim": args.projection_dim,
         "classifier_dropout": args.classifier_dropout,
@@ -174,10 +184,13 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         print("FIXED-BACKBONE LORA TRAINING")
         print(f"Model family: {args.model_family}")
         print(f"Backbone path: {args.backbone_path}")
+        print(f"Backbone repo id: {backbone_spec.repo_id}")
         print(f"Train root: {args.train_root}")
         print(f"CCMBA data dir: {args.ccmba_data_dir}")
         print(f"Dataset size: {len(train_dataset)}")
         print(f"Trainable params: {trainable_stats['trainable']} / {trainable_stats['total']}")
+        print(f"LoRA modules: {len(model.module.lora_modules)}")
+        print(f"Local files only: {args.local_files_only}")
         print("=" * 70)
 
     criterion = FocalLoss(alpha=args.focal_alpha, gamma=args.focal_gamma)
@@ -204,12 +217,14 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
 
             checkpoint = {
                 "epoch": epoch,
-                "model_state_dict": model.module.state_dict(),
+                "trainable_state_dict": extract_trainable_state_dict(model.module),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
                 "scaler_state_dict": scaler.state_dict(),
                 "best_acc": max(best_acc, acc),
                 "history": history,
+                "trainable_parameter_stats": trainable_stats,
+                "lora_modules": list(model.module.lora_modules),
                 "config": {
                     **model_config,
                     "train_root": args.train_root,
@@ -238,6 +253,8 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
             {
                 "history": history,
                 "best_acc": best_acc,
+                "trainable_parameter_stats": trainable_stats,
+                "lora_modules": list(model.module.lora_modules),
                 "config": {
                     **model_config,
                     "train_root": args.train_root,
@@ -257,13 +274,13 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Frozen-backbone LoRA training with blur augmentation.")
-    parser.add_argument("--model-family", choices=["clip_lora", "vit_large_lora"], required=True)
+    parser.add_argument("--model-family", choices=["clip_lora", "eva_giant_lora", "vit_large_lora"], required=True)
     parser.add_argument("--backbone-path", type=str, default=None)
     parser.add_argument("--train-root", type=str, default=DEFAULT_TRAIN_ROOT)
     parser.add_argument("--ccmba-data-dir", type=str, default=DEFAULT_CCMBA_DATA_DIR)
     parser.add_argument("--blur-mode", choices=["no_blur", "global", "ccmba", "mixed"], default="mixed")
     parser.add_argument("--blur-type", choices=["motion", "gaussian"], default="motion")
-    parser.add_argument("--blur-prob", type=float, default=0.2)
+    parser.add_argument("--blur-prob", type=float, default=0.1)
     parser.add_argument("--blur-min", type=float, default=0.1)
     parser.add_argument("--blur-max", type=float, default=0.3)
     parser.add_argument("--mixed-mode-ratio", type=float, default=0.5)
@@ -283,9 +300,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--focal-alpha", type=float, default=1.0)
     parser.add_argument("--focal-gamma", type=float, default=2.0)
     parser.add_argument("--output-dir", type=str, default="blur_generalization_suite/outputs/lora_train")
-    parser.add_argument("--local-files-only", action="store_true")
+    parser.add_argument("--local-files-only", dest="local_files_only", action="store_true", help="Load CLIP/EVA checkpoints from local files only.")
+    parser.add_argument("--allow-remote-backbone", dest="local_files_only", action="store_false", help="Allow remote Hugging Face resolution when a local snapshot is unavailable.")
     parser.add_argument("--seed", type=int, default=3407)
+    parser.set_defaults(local_files_only=True)
     args = parser.parse_args()
+    args.model_family = normalize_model_family(args.model_family)
     if args.backbone_path is None:
         args.backbone_path = DEFAULT_LORA_BACKBONES[args.model_family]
     return args

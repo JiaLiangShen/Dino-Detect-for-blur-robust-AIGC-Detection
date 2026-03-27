@@ -2,7 +2,7 @@
 
 这个目录是基于 `train_motion.py`、`0125_compensation/motion_direct_train.py` 和 `0125_compensation/test_for_wildrf.py` 拆出来的一组新实验脚本，目标是把你这次要补的三条实验线单独放好：
 
-1. `CLIP + LoRA` 和 `ViT-Large + LoRA` 的固定 backbone 模糊增强训练。
+1. `CLIP + LoRA` 和 `EVA-Giant + LoRA` 的固定 backbone 模糊增强训练。
 2. `DINOv3 ViT-Large-300M / ViT-Huge-840M` 的 teacher-student backbone sweep。
 3. `DINOv3` 在不同模糊强度下的特征一致性分析与可视化。
 
@@ -16,7 +16,7 @@
 - `dataset_configs.py`
   - 直接复用了 `test_for_wildrf.py` 的 cross-dataset 测试集配置，并补了 AIGCBenchmark 子集和 Table 4/5/6/7 的导出定义。
 - `model_zoo.py`
-  - `CLIP/ViT-Large + LoRA` 分类器。
+  - `CLIP/EVA-Giant + LoRA` 分类器。
   - `DINOv3` teacher/student 网络。
   - `FocalLoss`、distill loss、SimCLR loss 等训练组件。
 - `train_lora_blur.py`
@@ -69,19 +69,21 @@
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
   --model-family clip_lora \
-  --backbone-path /nas_train/app.e0016372/models/clip-vit-large-patch14 \
+  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
   --blur-mode mixed \
-  --blur-type motion
+  --blur-type motion \
+  --blur-prob 0.1
 ```
 
-### 2. ViT-Large + LoRA 训练
+### 2. EVA-Giant + LoRA 训练
 
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
-  --model-family vit_large_lora \
-  --backbone-path /nas_train/app.e0016372/models/vit-large-patch16-224-in21k \
+  --model-family eva_giant_lora \
+  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k \
   --blur-mode mixed \
-  --blur-type motion
+  --blur-type motion \
+  --blur-prob 0.1
 ```
 
 ### 3. LoRA cross-dataset clean / blur 测试

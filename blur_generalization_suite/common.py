@@ -1,4 +1,4 @@
-﻿import json
+import json
 import logging
 import os
 import random
@@ -100,10 +100,27 @@ def remove_module_prefix(state_dict: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned
 
 
+def extract_trainable_state_dict(model: torch.nn.Module) -> Dict[str, Any]:
+    state_dict = model.state_dict()
+    trainable_names = {name for name, param in model.named_parameters() if param.requires_grad}
+    return {
+        name: state_dict[name].detach().cpu()
+        for name in trainable_names
+        if name in state_dict
+    }
+
+
 def load_checkpoint_state(path: str | Path, map_location: str | torch.device = "cpu") -> Tuple[Dict[str, Any], Dict[str, Any]]:
     checkpoint = torch.load(path, map_location=map_location)
-    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-        state_dict = checkpoint["model_state_dict"]
+    if isinstance(checkpoint, dict):
+        if "trainable_state_dict" in checkpoint:
+            state_dict = checkpoint["trainable_state_dict"]
+        elif "adapter_state_dict" in checkpoint:
+            state_dict = checkpoint["adapter_state_dict"]
+        elif "model_state_dict" in checkpoint:
+            state_dict = checkpoint["model_state_dict"]
+        else:
+            state_dict = checkpoint
     else:
         state_dict = checkpoint
     return checkpoint, remove_module_prefix(state_dict)

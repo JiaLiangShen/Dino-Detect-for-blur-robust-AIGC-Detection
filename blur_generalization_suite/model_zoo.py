@@ -1,14 +1,86 @@
-﻿import math
-from dataclasses import asdict
-from typing import Dict, Iterable, List, Sequence, Tuple
+﻿import json
+import math
+import os
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Sequence, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
-from transformers import AutoImageProcessor, AutoModel, CLIPVisionModel, ViTModel
+
+try:
+    import timm
+except Exception:
+    timm = None
+
+try:
+    from transformers import AutoImageProcessor, AutoModel, CLIPVisionModel
+except Exception:
+    AutoImageProcessor = None
+    AutoModel = None
+    CLIPVisionModel = None
 
 from .data_utils import TransformConfig
+
+
+HF_BACKBONE_ROOT = os.environ.get(
+    "BLUR_GENERALIZATION_HF_BACKBONE_ROOT",
+    "/nas_train/app.e0016372/models/blur_generalization_hf_backbones",
+)
+
+
+@dataclass(frozen=True)
+class LoraBackboneSpec:
+    repo_id: str
+    local_dir: str
+    loader_backend: str
+    architecture_name: str | None
+    preprocess: TransformConfig
+    default_lora_targets: Tuple[str, ...]
+
+
+CLIP_BIGG_LORA_SPEC = LoraBackboneSpec(
+    repo_id="laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+    local_dir=f"{HF_BACKBONE_ROOT}/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+    loader_backend="transformers_clip",
+    architecture_name=None,
+    preprocess=TransformConfig(
+        resize_size=224,
+        crop_size=224,
+        mean=(0.48145466, 0.4578275, 0.40821073),
+        std=(0.26862954, 0.26130258, 0.27577711),
+    ),
+    default_lora_targets=(
+        "self_attn.q_proj",
+        "self_attn.k_proj",
+        "self_attn.v_proj",
+        "self_attn.out_proj",
+    ),
+)
+
+EVA_GIANT_LORA_SPEC = LoraBackboneSpec(
+    repo_id="timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    local_dir=f"{HF_BACKBONE_ROOT}/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    loader_backend="timm",
+    architecture_name="eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    preprocess=TransformConfig(
+        resize_size=336,
+        crop_size=336,
+        mean=(0.48145466, 0.4578275, 0.40821073),
+        std=(0.26862954, 0.26130258, 0.27577711),
+    ),
+    default_lora_targets=(
+        "attn.qkv",
+        "attn.proj",
+    ),
+)
+
+LORA_BACKBONE_SPECS = {
+    "clip_lora": CLIP_BIGG_LORA_SPEC,
+    "eva_giant_lora": EVA_GIANT_LORA_SPEC,
+    "vit_large_lora": EVA_GIANT_LORA_SPEC,
+}
 
 
 DEFAULT_DINOV3_MODELS = {
@@ -18,45 +90,27 @@ DEFAULT_DINOV3_MODELS = {
 }
 
 DEFAULT_LORA_BACKBONES = {
-    "clip_lora": "/nas_train/app.e0016372/models/clip-vit-large-patch14",
-    "vit_large_lora": "/nas_train/app.e0016372/models/vit-large-patch16-224-in21k",
+    model_family: spec.local_dir for model_family, spec in LORA_BACKBONE_SPECS.items()
 }
 
 DEFAULT_LORA_TARGETS = {
-    "clip_lora": (
-        "self_attn.q_proj",
-        "self_attn.k_proj",
-        "self_attn.v_proj",
-        "self_attn.out_proj",
-    ),
-    "vit_large_lora": (
-        "attention.attention.query",
-        "attention.attention.key",
-        "attention.attention.value",
-        "attention.output.dense",
-    ),
+    model_family: spec.default_lora_targets for model_family, spec in LORA_BACKBONE_SPECS.items()
 }
 
 DEFAULT_PREPROCESS = {
-    "clip_lora": TransformConfig(
-        resize_size=224,
-        crop_size=224,
-        mean=(0.48145466, 0.4578275, 0.40821073),
-        std=(0.26862954, 0.26130258, 0.27577711),
-    ),
-    "vit_large_lora": TransformConfig(
-        resize_size=256,
-        crop_size=224,
-        mean=(0.5, 0.5, 0.5),
-        std=(0.5, 0.5, 0.5),
-    ),
-    "dinov3": TransformConfig(
-        resize_size=512,
-        crop_size=448,
-        mean=(0.485, 0.456, 0.406),
-        std=(0.229, 0.224, 0.225),
-    ),
+    model_family: spec.preprocess for model_family, spec in LORA_BACKBONE_SPECS.items()
 }
+DEFAULT_PREPROCESS["dinov3"] = TransformConfig(
+    resize_size=512,
+    crop_size=448,
+    mean=(0.485, 0.456, 0.406),
+    std=(0.229, 0.224, 0.225),
+)
+
+
+def _require_dependency(module: Any, package_name: str, use_case: str) -> None:
+    if module is None:
+        raise ImportError(f"{package_name} is required for {use_case}.")
 
 
 def _resolve_size(value, default: int) -> int:
@@ -68,8 +122,95 @@ def _resolve_size(value, default: int) -> int:
                 return int(value[key])
         return default
     if isinstance(value, (tuple, list)):
+        if len(value) >= 2 and int(value[0]) in {1, 3}:
+            return int(value[-1])
         return int(value[0])
     return int(value)
+
+
+def _looks_like_filesystem_path(value: str) -> bool:
+    path = Path(value)
+    return path.is_absolute() or value.startswith(".") or "\\" in value
+
+
+def _find_first_existing_file(root: Path, candidates: Sequence[str]) -> Path | None:
+    for name in candidates:
+        candidate = root / name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _load_json_file(path: Path) -> Dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except Exception:
+        return None
+
+
+def _resolve_preprocess_from_local_repo(backbone_path: str, fallback: TransformConfig) -> TransformConfig | None:
+    root = Path(backbone_path)
+    if not root.exists() or not root.is_dir():
+        return None
+
+    preprocessor_config = _load_json_file(root / "preprocessor_config.json")
+    if preprocessor_config is not None:
+        resize_size = _resolve_size(preprocessor_config.get("size"), fallback.resize_size)
+        crop_size = _resolve_size(preprocessor_config.get("crop_size"), resize_size)
+        mean = tuple(float(x) for x in preprocessor_config.get("image_mean", fallback.mean))
+        std = tuple(float(x) for x in preprocessor_config.get("image_std", fallback.std))
+        return TransformConfig(
+            resize_size=resize_size,
+            crop_size=crop_size,
+            mean=mean,
+            std=std,
+        )
+
+    timm_config = _load_json_file(root / "config.json")
+    if timm_config is not None and isinstance(timm_config.get("pretrained_cfg"), dict):
+        pretrained_cfg = timm_config["pretrained_cfg"]
+        resize_size = _resolve_size(pretrained_cfg.get("input_size"), fallback.resize_size)
+        crop_size = _resolve_size(pretrained_cfg.get("input_size"), resize_size)
+        mean = tuple(float(x) for x in pretrained_cfg.get("mean", fallback.mean))
+        std = tuple(float(x) for x in pretrained_cfg.get("std", fallback.std))
+        return TransformConfig(
+            resize_size=resize_size,
+            crop_size=crop_size,
+            mean=mean,
+            std=std,
+        )
+
+    open_clip_config = _load_json_file(root / "open_clip_config.json")
+    if open_clip_config is not None:
+        model_cfg = open_clip_config.get("model_cfg", {})
+        vision_cfg = model_cfg.get("vision_cfg", {})
+        preprocess_cfg = open_clip_config.get("preprocess_cfg", {})
+        resize_size = _resolve_size(vision_cfg.get("image_size"), fallback.resize_size)
+        crop_size = _resolve_size(vision_cfg.get("image_size"), resize_size)
+        mean = tuple(float(x) for x in preprocess_cfg.get("mean", fallback.mean))
+        std = tuple(float(x) for x in preprocess_cfg.get("std", fallback.std))
+        return TransformConfig(
+            resize_size=resize_size,
+            crop_size=crop_size,
+            mean=mean,
+            std=std,
+        )
+
+    if timm_config is not None and isinstance(timm_config.get("vision_config"), dict):
+        vision_config = timm_config["vision_config"]
+        resize_size = _resolve_size(vision_config.get("image_size"), fallback.resize_size)
+        crop_size = _resolve_size(vision_config.get("image_size"), resize_size)
+        return TransformConfig(
+            resize_size=resize_size,
+            crop_size=crop_size,
+            mean=fallback.mean,
+            std=fallback.std,
+        )
+
+    return None
 
 
 def resolve_preprocess_config(
@@ -81,29 +222,41 @@ def resolve_preprocess_config(
     crop_override: int | None = None,
 ) -> TransformConfig:
     fallback = DEFAULT_PREPROCESS[model_family if model_family in DEFAULT_PREPROCESS else "dinov3"]
-    try:
-        processor = AutoImageProcessor.from_pretrained(
-            backbone_path,
-            local_files_only=local_files_only,
-            trust_remote_code=trust_remote_code,
-        )
-        resize_size = _resolve_size(getattr(processor, "size", None), fallback.resize_size)
-        crop_size = _resolve_size(getattr(processor, "crop_size", None), fallback.crop_size)
-        mean = tuple(float(x) for x in getattr(processor, "image_mean", fallback.mean))
-        std = tuple(float(x) for x in getattr(processor, "image_std", fallback.std))
+    local_repo_config = _resolve_preprocess_from_local_repo(backbone_path, fallback)
+    if local_repo_config is not None:
         return TransformConfig(
-            resize_size=resize_override or resize_size,
-            crop_size=crop_override or crop_size,
-            mean=mean,
-            std=std,
+            resize_size=resize_override or local_repo_config.resize_size,
+            crop_size=crop_override or local_repo_config.crop_size,
+            mean=local_repo_config.mean,
+            std=local_repo_config.std,
         )
-    except Exception:
-        return TransformConfig(
-            resize_size=resize_override or fallback.resize_size,
-            crop_size=crop_override or fallback.crop_size,
-            mean=fallback.mean,
-            std=fallback.std,
-        )
+
+    if AutoImageProcessor is not None:
+        try:
+            processor = AutoImageProcessor.from_pretrained(
+                backbone_path,
+                local_files_only=local_files_only,
+                trust_remote_code=trust_remote_code,
+            )
+            resize_size = _resolve_size(getattr(processor, "size", None), fallback.resize_size)
+            crop_size = _resolve_size(getattr(processor, "crop_size", None), fallback.crop_size)
+            mean = tuple(float(x) for x in getattr(processor, "image_mean", fallback.mean))
+            std = tuple(float(x) for x in getattr(processor, "image_std", fallback.std))
+            return TransformConfig(
+                resize_size=resize_override or resize_size,
+                crop_size=crop_override or crop_size,
+                mean=mean,
+                std=std,
+            )
+        except Exception:
+            pass
+
+    return TransformConfig(
+        resize_size=resize_override or fallback.resize_size,
+        crop_size=crop_override or fallback.crop_size,
+        mean=fallback.mean,
+        std=fallback.std,
+    )
 
 
 class LoRALinear(nn.Module):
@@ -193,8 +346,12 @@ def apply_lora_to_linear_layers(
             continue
         if not any(module_name.endswith(suffix) for suffix in target_suffixes):
             continue
-        parent_name, child_name = module_name.rsplit(".", 1)
-        parent_module = model.get_submodule(parent_name)
+        if "." in module_name:
+            parent_name, child_name = module_name.rsplit(".", 1)
+            parent_module = model.get_submodule(parent_name)
+        else:
+            parent_module = model
+            child_name = module_name
         _set_module(parent_module, child_name, LoRALinear(module, rank=rank, alpha=alpha, dropout=dropout))
         replaced.append(module_name)
     return replaced
@@ -216,27 +373,37 @@ class LoraVisionBinaryClassifier(nn.Module):
         lora_targets: Sequence[str] | None = None,
     ):
         super().__init__()
+        if model_family not in LORA_BACKBONE_SPECS:
+            raise ValueError(f"Unsupported model_family: {model_family}")
+
         self.model_family = model_family
         self.backbone_path = backbone_path
         self.projection_dim = projection_dim
         self.local_files_only = local_files_only
+        self.backbone_spec = LORA_BACKBONE_SPECS[model_family]
+        self.loader_backend = self.backbone_spec.loader_backend
+        self.backbone_repo_id = self.backbone_spec.repo_id
+        self.backbone_architecture = self.backbone_spec.architecture_name
 
         self.backbone = self._load_backbone(model_family, backbone_path, local_files_only)
-        self.hidden_size = getattr(self.backbone.config, "hidden_size", None)
-        if self.hidden_size is None:
-            raise ValueError(f"Cannot infer hidden_size for {model_family}")
+        self.hidden_size = self._infer_hidden_size(self.backbone)
 
         for param in self.backbone.parameters():
             param.requires_grad = False
 
-        targets = tuple(lora_targets) if lora_targets else DEFAULT_LORA_TARGETS[model_family]
+        self.lora_targets = tuple(lora_targets) if lora_targets else DEFAULT_LORA_TARGETS[model_family]
         self.lora_modules = apply_lora_to_linear_layers(
             self.backbone,
-            targets,
+            self.lora_targets,
             rank=lora_rank,
             alpha=lora_alpha,
             dropout=lora_dropout,
         )
+        if not self.lora_modules:
+            raise ValueError(
+                f"No LoRA target modules matched for {model_family}. "
+                f"Targets: {self.lora_targets}"
+            )
 
         self.projection = nn.Sequential(
             nn.LayerNorm(self.hidden_size),
@@ -256,16 +423,93 @@ class LoraVisionBinaryClassifier(nn.Module):
 
     def _load_backbone(self, model_family: str, backbone_path: str, local_files_only: bool) -> nn.Module:
         if model_family == "clip_lora":
-            return CLIPVisionModel.from_pretrained(backbone_path, local_files_only=local_files_only)
+            _require_dependency(CLIPVisionModel, "transformers", "CLIP LoRA backbones")
+            return CLIPVisionModel.from_pretrained(
+                backbone_path,
+                local_files_only=local_files_only,
+            )
+
         if model_family == "vit_large_lora":
-            return ViTModel.from_pretrained(backbone_path, local_files_only=local_files_only)
+            _require_dependency(timm, "timm", "EVA LoRA backbones")
+            backbone_dir = Path(backbone_path)
+            if backbone_dir.exists():
+                checkpoint_path = _find_first_existing_file(
+                    backbone_dir,
+                    ("model.safetensors", "pytorch_model.bin"),
+                )
+                if checkpoint_path is None:
+                    raise FileNotFoundError(
+                        f"No weight file found under {backbone_dir}. Expected model.safetensors or pytorch_model.bin."
+                    )
+                return timm.create_model(
+                    self.backbone_architecture,
+                    pretrained=False,
+                    num_classes=0,
+                    checkpoint_path=str(checkpoint_path),
+                )
+
+            if _looks_like_filesystem_path(backbone_path):
+                raise FileNotFoundError(f"Backbone path does not exist: {backbone_path}")
+            if local_files_only:
+                raise FileNotFoundError(
+                    "local_files_only=True but the EVA backbone directory was not found locally. "
+                    f"Expected something like: {DEFAULT_LORA_BACKBONES[model_family]}"
+                )
+
+            resolved_name = backbone_path
+            if "/" in backbone_path and not backbone_path.startswith("hf-hub:"):
+                resolved_name = f"hf-hub:{backbone_path}"
+            return timm.create_model(resolved_name, pretrained=True, num_classes=0)
+
         raise ValueError(f"Unsupported model_family: {model_family}")
 
+    def _infer_hidden_size(self, backbone: nn.Module) -> int:
+        hidden_size = getattr(getattr(backbone, "config", None), "hidden_size", None)
+        if hidden_size is not None:
+            return int(hidden_size)
+        for attr_name in ("num_features", "embed_dim"):
+            value = getattr(backbone, attr_name, None)
+            if value is not None:
+                return int(value)
+        raise ValueError(f"Cannot infer hidden_size for {self.model_family}")
+
+    def _extract_timm_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
+        features = self.backbone.forward_features(pixel_values) if hasattr(self.backbone, "forward_features") else self.backbone(pixel_values)
+
+        if isinstance(features, dict):
+            for key in ("x_norm_clstoken", "pre_logits", "features"):
+                if key in features:
+                    features = features[key]
+                    break
+        if isinstance(features, (tuple, list)):
+            features = features[0]
+
+        if isinstance(features, torch.Tensor) and features.ndim == 3:
+            if hasattr(self.backbone, "forward_head"):
+                try:
+                    head_features = self.backbone.forward_head(features, pre_logits=True)
+                except TypeError:
+                    head_features = self.backbone.forward_head(features)
+                if isinstance(head_features, torch.Tensor) and head_features.ndim == 2:
+                    return head_features.float()
+            return features[:, 0].float()
+
+        if isinstance(features, torch.Tensor) and features.ndim == 4:
+            return features.mean(dim=(-2, -1)).float()
+
+        if isinstance(features, torch.Tensor):
+            return features.float()
+        raise TypeError(f"Unsupported timm feature type: {type(features)}")
+
     def extract_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
-        outputs = self.backbone(pixel_values=pixel_values, return_dict=True)
-        if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-            return outputs.pooler_output.float()
-        return outputs.last_hidden_state[:, 0].float()
+        if self.loader_backend == "transformers_clip":
+            outputs = self.backbone(pixel_values=pixel_values, return_dict=True)
+            if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                return outputs.pooler_output.float()
+            return outputs.last_hidden_state[:, 0].float()
+        if self.loader_backend == "timm":
+            return self._extract_timm_features(pixel_values)
+        raise ValueError(f"Unsupported loader backend: {self.loader_backend}")
 
     def forward(self, pixel_values: torch.Tensor, return_features: bool = False):
         features = self.extract_features(pixel_values)
@@ -292,6 +536,7 @@ class ImprovedDinoV3Adapter(nn.Module):
         device: str | torch.device = "cuda",
     ):
         super().__init__()
+        _require_dependency(AutoModel, "transformers", "DINOv3 backbones")
         self.model_path = model_path
         self.backbone = AutoModel.from_pretrained(
             model_path,

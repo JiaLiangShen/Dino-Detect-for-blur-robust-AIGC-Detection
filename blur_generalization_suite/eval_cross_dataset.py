@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import csv
 import sys
 import time
@@ -58,34 +58,63 @@ def evaluate_model(model, test_loader, device, blur_mode: str):
     return compute_binary_metrics(labels, predictions)
 
 
-def write_summary_csv(path: Path, results: dict) -> None:
+def build_model_metadata(config: dict) -> dict:
+    backbone_path = config.get("backbone_path", "")
+    backbone_repo_id = config.get("backbone_repo_id", "")
+    backbone_name = Path(backbone_path).name if backbone_path else backbone_repo_id.split("/")[-1]
+    return {
+        "model_family": config.get("model_family", "unknown"),
+        "backbone_name": backbone_name,
+        "backbone_repo_id": backbone_repo_id,
+        "backbone_path": backbone_path,
+    }
+
+
+def write_summary_csv(path: Path, results: dict, model_metadata: dict) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["dataset", "blur_mode", "accuracy", "precision", "recall", "f1_score", "total_samples"])
+        writer.writerow([
+            "model_family",
+            "backbone_name",
+            "backbone_repo_id",
+            "dataset",
+            "blur_mode",
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "total_samples",
+        ])
         for dataset_name, dataset_results in results.items():
             for blur_mode, metrics in dataset_results.items():
-                writer.writerow(
-                    [
-                        dataset_name,
-                        blur_mode,
-                        metrics["accuracy"],
-                        metrics["precision"],
-                        metrics["recall"],
-                        metrics["f1_score"],
-                        metrics["total_samples"],
-                    ]
-                )
+                writer.writerow([
+                    model_metadata["model_family"],
+                    model_metadata["backbone_name"],
+                    model_metadata["backbone_repo_id"],
+                    dataset_name,
+                    blur_mode,
+                    metrics["accuracy"],
+                    metrics["precision"],
+                    metrics["recall"],
+                    metrics["f1_score"],
+                    metrics["total_samples"],
+                ])
 
 
-def write_table_exports(output_dir: Path, results: dict) -> None:
+def write_table_exports(output_dir: Path, results: dict, model_metadata: dict) -> None:
     for filename, blur_mode, metric_name in TABLE_EXPORT_SPECS:
         path = output_dir / f"{filename}.csv"
         with path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["dataset", metric_name])
+            writer.writerow(["model_family", "backbone_name", "dataset", metric_name])
             for dataset_name, dataset_results in results.items():
                 if blur_mode in dataset_results:
-                    writer.writerow([dataset_name, dataset_results[blur_mode][metric_name]])
+                    writer.writerow([
+                        model_metadata["model_family"],
+                        model_metadata["backbone_name"],
+                        dataset_name,
+                        dataset_results[blur_mode][metric_name],
+                    ])
 
 
 def main() -> None:
@@ -102,6 +131,7 @@ def main() -> None:
     args = parser.parse_args()
 
     model, checkpoint, config, missing, unexpected = load_model(args.model_path, DEVICE)
+    model_metadata = build_model_metadata(config)
     preprocess_dict = config.get("preprocess_config", {})
     transform_config = TransformConfig(**preprocess_dict)
     test_transform = build_eval_transform(transform_config)
@@ -160,6 +190,7 @@ def main() -> None:
         output_dir / f"cross_dataset_eval_{timestamp}.json",
         {
             "model_path": args.model_path,
+            "model_metadata": model_metadata,
             "checkpoint_config": config,
             "eval_config": {
                 "dataset_group": args.dataset_group,
@@ -171,8 +202,8 @@ def main() -> None:
             "results": all_results,
         },
     )
-    write_summary_csv(output_dir / f"cross_dataset_summary_{timestamp}.csv", all_results)
-    write_table_exports(output_dir, all_results)
+    write_summary_csv(output_dir / f"cross_dataset_summary_{timestamp}.csv", all_results, model_metadata)
+    write_table_exports(output_dir, all_results, model_metadata)
     print(f"Results saved to: {output_dir}")
 
 

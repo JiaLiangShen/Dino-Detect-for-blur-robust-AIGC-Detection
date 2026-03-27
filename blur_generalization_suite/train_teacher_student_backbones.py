@@ -19,6 +19,7 @@ from blur_generalization_suite.common import (
     cleanup_distributed,
     count_trainable_parameters,
     ensure_dir,
+    extract_trainable_state_dict,
     parse_distributed_env,
     save_json,
     set_seed,
@@ -112,7 +113,7 @@ def save_phase_checkpoint(path: Path, model, optimizer, scheduler, scaler, histo
             "epoch": epoch,
             "phase": phase,
             "best_acc": best_acc,
-            "model_state_dict": model.module.state_dict(),
+            "trainable_state_dict": extract_trainable_state_dict(model.module),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict(),
             "scaler_state_dict": scaler.state_dict(),
@@ -482,7 +483,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ccmba-data-dir", type=str, default=None)
     parser.add_argument("--blur-mode", choices=["global", "ccmba", "mixed"], default="mixed")
     parser.add_argument("--blur-type", choices=["motion", "gaussian"], default="motion")
-    parser.add_argument("--blur-prob", type=float, default=0.2)
+    parser.add_argument("--blur-prob", type=float, default=0.1)
     parser.add_argument("--blur-min", type=float, default=0.1)
     parser.add_argument("--blur-max", type=float, default=0.3)
     parser.add_argument("--mixed-mode-ratio", type=float, default=0.5)
