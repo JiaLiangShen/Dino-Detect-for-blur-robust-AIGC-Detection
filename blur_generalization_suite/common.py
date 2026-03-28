@@ -43,8 +43,8 @@ def setup_distributed(rank: int, world_size: int, backend: str | None = None) ->
 
     if backend == "nccl":
         os.environ.setdefault("NCCL_TIMEOUT", "1800")
-        os.environ.setdefault("NCCL_BLOCKING_WAIT", "1")
-        os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
+        os.environ.setdefault("TORCH_NCCL_BLOCKING_WAIT", "1")
+        os.environ.setdefault("TORCH_NCCL_ASYNC_ERROR_HANDLING", "1")
         os.environ.setdefault("NCCL_SOCKET_IFNAME", "^lo,docker")
         os.environ.setdefault("NCCL_IB_DISABLE", "1")
         os.environ.setdefault("NCCL_P2P_DISABLE", "1")

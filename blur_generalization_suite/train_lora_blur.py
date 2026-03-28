@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -43,7 +43,7 @@ DEFAULT_CCMBA_DATA_DIR = "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train"
 
 
 def normalize_model_family(model_family: str) -> str:
-    return "eva_giant_lora" if model_family == "vit_large_lora" else model_family
+    return "vit_large_lora" if model_family == "eva_giant_lora" else model_family
 
 
 def experiment_name(args: argparse.Namespace) -> str:
@@ -99,7 +99,7 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
             blurred_images.append(blurred_tensor.to(device, non_blocking=True))
         blurred_images = torch.stack(blurred_images)
 
-        with autocast(enabled=device.type == "cuda"):
+        with autocast(device.type):
             logits = actual_model(blurred_images)
             loss = criterion(logits, labels)
 
@@ -295,7 +295,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
     criterion = FocalLoss(alpha=args.focal_alpha, gamma=args.focal_gamma)
     optimizer = optim.AdamW((param for param in model.parameters() if param.requires_grad), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-    scaler = GradScaler(enabled=device.type == "cuda")
+    scaler = GradScaler(device.type)
 
     output_dir = ensure_dir(Path(args.output_dir) / experiment_name(args))
     best_acc = float("-inf")

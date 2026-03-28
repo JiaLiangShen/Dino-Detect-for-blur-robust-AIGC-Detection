@@ -26,7 +26,7 @@ from .data_utils import TransformConfig
 
 HF_BACKBONE_ROOT = os.environ.get(
     "BLUR_GENERALIZATION_HF_BACKBONE_ROOT",
-    "/nas_train/app.e0016372/models/blur_generalization_hf_backbones",
+    "/nas_train/app.e0016372/models",
 )
 
 
@@ -42,7 +42,7 @@ class LoraBackboneSpec:
 
 CLIP_BIGG_LORA_SPEC = LoraBackboneSpec(
     repo_id="laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
-    local_dir=f"{HF_BACKBONE_ROOT}/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+    local_dir=f"{HF_BACKBONE_ROOT}/CLIP-ViT-bigG-14-laion2B-39B-b160k",
     loader_backend="transformers_clip",
     architecture_name=None,
     preprocess=TransformConfig(
@@ -61,7 +61,7 @@ CLIP_BIGG_LORA_SPEC = LoraBackboneSpec(
 
 EVA_GIANT_LORA_SPEC = LoraBackboneSpec(
     repo_id="timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
-    local_dir=f"{HF_BACKBONE_ROOT}/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    local_dir=f"{HF_BACKBONE_ROOT}/eva_giant_patch14_336.m30m_ft_in22k_in1k",
     loader_backend="timm",
     architecture_name="eva_giant_patch14_336.m30m_ft_in22k_in1k",
     preprocess=TransformConfig(
@@ -443,9 +443,10 @@ class LoraVisionBinaryClassifier(nn.Module):
                     )
                 return timm.create_model(
                     self.backbone_architecture,
-                    pretrained=False,
+                    pretrained=True,
                     num_classes=0,
                     checkpoint_path=str(checkpoint_path),
+                    # strict=False
                 )
 
             if _looks_like_filesystem_path(backbone_path):
