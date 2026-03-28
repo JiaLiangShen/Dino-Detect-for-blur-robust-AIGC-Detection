@@ -134,12 +134,28 @@ def compute_binary_metrics(labels: list[int], predictions: list[int]) -> Dict[st
         average="binary",
         zero_division=0,
     )
-    cm = confusion_matrix(labels, predictions)
+    cm = confusion_matrix(labels, predictions, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
+
+    real_total = tn + fp
+    fake_total = tp + fn
+    real_accuracy = float(tn / real_total) if real_total else 0.0
+    fake_accuracy = float(tp / fake_total) if fake_total else 0.0
+    balanced_accuracy = 0.5 * (real_accuracy + fake_accuracy)
+    balanced_accuracy_half_gap = abs(fake_accuracy - real_accuracy) / 2.0
+
     return {
         "accuracy": float(accuracy),
         "precision": float(precision),
         "recall": float(recall),
         "f1_score": float(f1),
+        "bacc": float(balanced_accuracy),
+        "balanced_accuracy": float(balanced_accuracy),
+        "balanced_accuracy_half_gap": float(balanced_accuracy_half_gap),
+        "real_accuracy": real_accuracy,
+        "fake_accuracy": fake_accuracy,
+        "real_total": int(real_total),
+        "fake_total": int(fake_total),
         "confusion_matrix": cm.tolist(),
         "total_samples": int(len(labels)),
     }

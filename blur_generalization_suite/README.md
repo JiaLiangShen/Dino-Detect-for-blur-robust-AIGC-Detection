@@ -1,149 +1,141 @@
-﻿# Blur Generalization Suite
+# 模糊泛化工具套件
+该文件夹包含整理优化后的实验代码，基于原始 `train_motion.py` 与 `0125_compensation/test_for_wildrf.py` 两套流程开发而来。
 
-这个目录是基于 `train_motion.py`、`0125_compensation/motion_direct_train.py` 和 `0125_compensation/test_for_wildrf.py` 拆出来的一组新实验脚本，目标是把你这次要补的三条实验线单独放好：
+本工具套件目前包含四大实验组：
+1. 骨干网络冻结：`CLIP ViT-bigG + LoRA` 与 `EVA-Giant/14-336 + LoRA`
+2. `DINOv3 ViT-Large-300M / ViT-Huge-840M` 师生骨干网络对照实验
+3. 不同模糊强度下 `DINOv3` 特征一致性可视化分析
+4. 基于 `own_benchmark` 数据集的「去模糊 -> 检测模型」对比实验
 
-1. `CLIP + LoRA` 和 `EVA-Giant + LoRA` 的固定 backbone 模糊增强训练。
-2. `DINOv3 ViT-Large-300M / ViT-Huge-840M` 的 teacher-student backbone sweep。
-3. `DINOv3` 在不同模糊强度下的特征一致性分析与可视化。
+## 新增功能说明
+### LoRA 训练模块
+- `train_lora_blur.py` 现已支持参数 `--report-checkpoint best|last`
+- 自动保存模型：`best_lora_model.pth`、`last_lora_model.pth`、`latest_lora_model.pth`、`selected_lora_model.pth`
+- `selected_lora_model.pth` 会严格跟随你选定的记录规则保存
+- 训练日志新增记录：`train_bacc`、`train_real_acc`、`train_fake_acc`
 
-## 文件说明
+### 评估指标扩展
+`eval_cross_dataset.py` 与 `eval_teacher_student_aigc.py` 现已支持导出以下指标：
+- `accuracy`
+- `bacc`
+- `real_accuracy`
+- `fake_accuracy`
+- `balanced_accuracy_half_gap`
+- `precision`
+- `recall`
+- `f1_score`
 
-- `common.py`
-  - 分布式训练、指标统计、checkpoint 读取、JSON 保存等通用工具。
-- `data_utils.py`
-  - 训练/测试数据集读取，CCMBA 模糊数据读取，motion/gaussian blur 处理，以及通用 transform 构建。
-  - 现在补回了 teacher-student 原脚本里的 `enable_strong_aug` 入口，用于 0.4 概率切到带轻量 JPEG 增强的 strong transform。
-- `dataset_configs.py`
-  - 直接复用了 `test_for_wildrf.py` 的 cross-dataset 测试集配置，并补了 AIGCBenchmark 子集和 Table 4/5/6/7 的导出定义。
-- `model_zoo.py`
-  - `CLIP/EVA-Giant + LoRA` 分类器。
-  - `DINOv3` teacher/student 网络。
-  - `FocalLoss`、distill loss、SimCLR loss 等训练组件。
-- `train_lora_blur.py`
-  - 用固定 backbone + LoRA 的方式训练 `CLIP` 或 `ViT-Large`。
-  - 数据增强逻辑沿用 direct-train 思路，不在训练阶段做测试。
-- `eval_cross_dataset.py`
-  - 加载 `train_lora_blur.py` 产出的 checkpoint。
-  - 按 `test_for_wildrf.py` 的 clean / blur 双模式，在 cross-dataset 上统一评估。
-  - 会额外导出 `table4_clean_accuracy.csv`、`table5_blur_accuracy.csv`、`table6_clean_f1.csv`、`table7_blur_f1.csv`。
-- `train_teacher_student_backbones.py`
-  - 沿用 `train_motion.py` 的 teacher-student 两阶段框架。
-  - teacher clean、student blur、distill / feature / SimCLR loss 保持不变。
-  - 只把 DINOv3 backbone 改成可配置输入，方便补 `ViT-Large-300M` 和 `ViT-Huge-840M`。
-  - 默认 `data_preset=original_motion`，也就是更贴近原版 `train_motion.py` 的路径语义；如果要跑这次补的 SDV1.4 实验，用 `--data-preset sdv14`。
-- `eval_teacher_student_aigc.py`
-  - 加载 teacher-student checkpoint，并按 `teacher` 或 `student` 分支单独评估。
-  - 默认数据集组是 `aigc_benchmark`。
-- `analyze_dinov3_blur_consistency.py`
-  - 计算 DINOv3 patch-level feature 的 cosine-similarity matrix。
-  - 比较原图与不同 blur 强度下的相关性，输出逐图 JSON、平均 JSON 和趋势图。
+同时会自动生成导出文件：`clean_bacc.csv` 与 `blur_bacc.csv`
 
-## 默认路径和预设
+### 师生对齐优化
+`train_teacher_student_backbones.py` 会将 `alpha_simclr` 参数显式存入配置文件中。
+默认值与原版学生训练阶段保持一致：`alpha_simclr = 0.3`
 
-### LoRA 训练
+### 模糊一致性分析
+默认分析区间已设定为：`0.0 ~ 0.5`，步长 `step = 0.1`
 
-- 默认训练集：`/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`
-- 默认 CCMBA 路径：`/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
+### 去模糊基线算法
+新增脚本 `eval_deblur_benchmark.py`，为 **模糊 -> 去模糊 -> 检测** 流程补充经典 `Wiener deconvolution` 维纳反卷积基线算法。
 
-### Teacher-student 训练
+## 核心文件说明
+- `common.py`：分布式通用工具、权重加载、指标计算通用函数
+- `data_utils.py`：数据集加载、模糊变换、归一化工具与维纳去模糊算法
+- `dataset_configs.py`：跨数据集配置与 `own_benchmark` 自定义数据集配置
+- `model_zoo.py`：LoRA 骨干网络与 DINOv3 师生网络定义
+- `train_lora_blur.py`：第一组实验训练脚本
+- `eval_cross_dataset.py`：第一组实验评估脚本
+- `train_teacher_student_backbones.py`：第二组实验训练脚本
+- `eval_teacher_student_aigc.py`：第二组实验评估脚本
+- `analyze_dinov3_blur_consistency.py`：第三组一致性分析脚本
+- `eval_deblur_benchmark.py`：第四组去模糊对比实验脚本
 
-脚本里做了两个数据预设：
+## 默认路径配置
+### LoRA 实验路径
+- 训练数据集根目录：`/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`
+- CCMBA 数据集根目录：`/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
+- 本地 HF 模型缓存根目录：`/nas_train/app.e0016372/models/blur_generalization_hf_backbones`
 
-- `original_motion`：对齐原 `train_motion.py`
-  - `train_root=/home/work/xueyunqi/11ar_datasets/extracted`
-  - `ccmba_data_dir=/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
-- `sdv14`：用于这次要补的 SDV1.4 实验
-  - `train_root=/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`
-  - `ccmba_data_dir=/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44`
+你也可以通过环境变量 `BLUR_GENERALIZATION_HF_BACKBONE_ROOT` 自定义修改骨干模型根路径。
 
-当前默认是 `original_motion`。如果你服务器上的实际路径不同，直接改命令行参数即可，不需要改脚本内部。
+### 师生实验预设路径
+- `original_motion`：`/home/work/xueyunqi/11ar_datasets/extracted` + `/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
+- `sdv14`：`/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4` + `/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44`
 
-### DINOv3 consistency
+### 去模糊基准数据集
+默认数据集目录结构：
+- `own_benchmark/0_real`
+- `own_benchmark/1_fake`
 
-- 默认模型：`/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m`
-
-## 运行入口示例
-
-### 1. CLIP + LoRA 训练
-
+## 快速启动命令
+### CLIP ViT-bigG + LoRA 训练
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
   --model-family clip_lora \
-  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
   --blur-mode mixed \
   --blur-type motion \
-  --blur-prob 0.1
+  --blur-prob 0.1 \
+  --report-checkpoint best
 ```
 
-### 2. EVA-Giant + LoRA 训练
-
+### EVA-Giant + LoRA 训练
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
   --model-family eva_giant_lora \
-  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k \
   --blur-mode mixed \
   --blur-type motion \
-  --blur-prob 0.1
+  --blur-prob 0.1 \
+  --report-checkpoint best
 ```
 
-### 3. LoRA cross-dataset clean / blur 测试
-
+### LoRA 跨数据集评估
 ```bash
 python blur_generalization_suite/eval_cross_dataset.py \
-  --model-path blur_generalization_suite/outputs/lora_train/.../best_lora_model.pth \
+  --model-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
   --dataset-group all \
   --blur-mode both
 ```
 
-### 4. Teacher-student backbone sweep
-
-如果你想按“原版路径语义”运行：
-
-```bash
-torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
-  --backbone-preset dinov3_vitl300m
-```
-
-如果你想按“这次补实验的 SDV1.4 数据”运行：
-
+### 师生骨干网络对照训练
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
   --backbone-preset dinov3_vitl300m \
-  --data-preset sdv14
+  --data-preset sdv14 \
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
 ```
 
-或
-
-```bash
-torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
-  --backbone-preset dinov3_vith840m \
-  --data-preset sdv14
-```
-
-### 5. Teacher / Student 在 AIGCBenchmark 上评估
-
-```bash
-python blur_generalization_suite/eval_teacher_student_aigc.py \
-  --model-path blur_generalization_suite/outputs/teacher_student/.../best_student_model.pth \
-  --branch student \
-  --dataset-group aigc_benchmark
-```
-
-### 6. DINOv3 blur consistency 分析
-
+### DINOv3 模糊一致性分析
 ```bash
 python blur_generalization_suite/analyze_dinov3_blur_consistency.py \
   --data-root /data/app.e0016372/11ar_datasets/test/wukong/1_fake \
   --blur-type motion \
-  --max-images 64
+  --min-blur 0.0 \
+  --max-blur 0.5 \
+  --step 0.1
 ```
 
-## 几个注意事项
+### 去模糊基准实验
+```bash
+python blur_generalization_suite/eval_deblur_benchmark.py \
+  --dataset-name own_benchmark \
+  --dinov3-student-path blur_generalization_suite/outputs/teacher_student/.../best_student_model.pth \
+  --clip-lora-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
+  --eva-lora-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
+  --pipelines no_blur blur blur_then_deblur \
+  --blur-type motion \
+  --blur-strength 0.3
+```
 
-- LoRA 这条线我按“固定 backbone + trainable LoRA + trainable classifier head”写的，没有把整个 backbone 解冻。
-- Teacher-student 这条线现在已经对齐了原版的几个关键默认行为：
-  - 默认 `local_files_only=True`
-  - 默认数据预设回到原版路径语义
-  - 补回了 `enable_strong_aug=True` 这层入口
-- Table 4/5/6/7 的导出我做成了四个 csv 视图，方便你后续再按论文版式拼表；如果你的最终表头需要别的字段，再加一层汇总脚本就行。
-- DINOv3 consistency 这里用的是 patch-level cosine similarity matrix correlation，思路对齐你仓库里 `1019_6models_cosine.py` 的那条分析线，但代码更轻量、只保留 DINOv3 本身。
+## 指标定义
+平衡准确率计算公式：
+- `real_accuracy`：真实样本检测准确率
+- `fake_accuracy`：伪造样本检测准确率
+- `bacc = (real_accuracy + fake_accuracy) / 2`
+- `balanced_accuracy_half_gap = |real_accuracy - fake_accuracy| / 2`
+
+标准简写报告格式：
+- `bacc +- balanced_accuracy_half_gap`
+
+## 补充说明
+目前去模糊实验仅采用简易经典 Wiener 基线算法。
+该模块仅作为干净公平的对比基准使用，**并非深度学习前沿最优去模糊模型**。

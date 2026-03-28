@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import csv
 import sys
 import time
@@ -19,6 +19,10 @@ from blur_generalization_suite.model_zoo import TeacherStudentEvalWrapper, Teach
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+BACC_EXPORT_SPECS = [
+    ("clean_bacc", "no_blur", "bacc"),
+    ("blur_bacc", "global", "bacc"),
+]
 
 
 def load_teacher_student_model(model_path: str, branch: str, device: torch.device):
@@ -61,23 +65,70 @@ def evaluate_model(model, test_loader, device, blur_mode: str):
     return compute_binary_metrics(labels, predictions)
 
 
-def write_summary_csv(path: Path, results: dict) -> None:
+def build_model_metadata(config: dict, branch: str) -> dict:
+    backbone_path = config.get("dinov3_model_id", "")
+    return {
+        "model_family": "teacher_student_dinov3",
+        "branch": branch,
+        "backbone_name": Path(backbone_path).name,
+        "backbone_path": backbone_path,
+        "alpha_simclr": config.get("alpha_simclr", 0.3),
+    }
+
+
+def write_summary_csv(path: Path, results: dict, model_metadata: dict) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["dataset", "blur_mode", "accuracy", "precision", "recall", "f1_score", "total_samples"])
+        writer.writerow([
+            "model_family",
+            "branch",
+            "backbone_name",
+            "dataset",
+            "blur_mode",
+            "accuracy",
+            "bacc",
+            "real_accuracy",
+            "fake_accuracy",
+            "balanced_accuracy_half_gap",
+            "precision",
+            "recall",
+            "f1_score",
+            "total_samples",
+        ])
         for dataset_name, dataset_results in results.items():
             for blur_mode, metrics in dataset_results.items():
-                writer.writerow(
-                    [
+                writer.writerow([
+                    model_metadata["model_family"],
+                    model_metadata["branch"],
+                    model_metadata["backbone_name"],
+                    dataset_name,
+                    blur_mode,
+                    metrics["accuracy"],
+                    metrics["bacc"],
+                    metrics["real_accuracy"],
+                    metrics["fake_accuracy"],
+                    metrics["balanced_accuracy_half_gap"],
+                    metrics["precision"],
+                    metrics["recall"],
+                    metrics["f1_score"],
+                    metrics["total_samples"],
+                ])
+
+
+def write_bacc_exports(output_dir: Path, results: dict, model_metadata: dict) -> None:
+    for filename, blur_mode, metric_name in BACC_EXPORT_SPECS:
+        path = output_dir / f"{filename}.csv"
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["branch", "backbone_name", "dataset", metric_name])
+            for dataset_name, dataset_results in results.items():
+                if blur_mode in dataset_results:
+                    writer.writerow([
+                        model_metadata["branch"],
+                        model_metadata["backbone_name"],
                         dataset_name,
-                        blur_mode,
-                        metrics["accuracy"],
-                        metrics["precision"],
-                        metrics["recall"],
-                        metrics["f1_score"],
-                        metrics["total_samples"],
-                    ]
-                )
+                        dataset_results[blur_mode][metric_name],
+                    ])
 
 
 def main() -> None:
@@ -95,6 +146,7 @@ def main() -> None:
     args = parser.parse_args()
 
     model, checkpoint, config, missing, unexpected = load_teacher_student_model(args.model_path, args.branch, DEVICE)
+    model_metadata = build_model_metadata(config, args.branch)
     transform_dict = config.get("transform_config", {"resize_size": 512, "crop_size": 448, "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]})
     transform_config = TransformConfig(
         resize_size=int(transform_dict["resize_size"]),
@@ -146,7 +198,10 @@ def main() -> None:
             metrics["blur_mode"] = mode
             metrics["time_seconds"] = time.time() - start
             dataset_results[mode] = metrics
-            print(f"  {mode}: acc={metrics['accuracy']:.4f}, f1={metrics['f1_score']:.4f}")
+            print(
+                f"  {mode}: acc={metrics['accuracy']:.4f}, "
+                f"bacc={metrics['bacc']:.4f}, f1={metrics['f1_score']:.4f}"
+            )
 
         all_results[dataset_name] = dataset_results
 
@@ -158,6 +213,7 @@ def main() -> None:
         {
             "model_path": args.model_path,
             "branch": args.branch,
+            "model_metadata": model_metadata,
             "checkpoint_config": config,
             "eval_config": {
                 "dataset_group": args.dataset_group,
@@ -169,7 +225,8 @@ def main() -> None:
             "results": all_results,
         },
     )
-    write_summary_csv(output_dir / f"aigc_eval_summary_{timestamp}.csv", all_results)
+    write_summary_csv(output_dir / f"aigc_eval_summary_{timestamp}.csv", all_results, model_metadata)
+    write_bacc_exports(output_dir, all_results, model_metadata)
     print(f"Results saved to: {output_dir}")
 
 

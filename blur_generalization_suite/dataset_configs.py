@@ -1,4 +1,4 @@
-﻿from copy import deepcopy
+from copy import deepcopy
 from typing import Dict
 
 
@@ -87,6 +87,11 @@ CROSS_DATASET_TEST_DATASETS: Dict[str, Dict[str, object]] = {
         "type": "simple",
         "real_folder": "/data/app.e0016372/11ar_datasets/test/Glide/0_real",
         "fake_folder": "/data/app.e0016372/11ar_datasets/test/Glide/1_fake",
+    },
+    "own_benchmark": {
+        "type": "simple",
+        "real_folder": "own_benchmark/0_real",
+        "fake_folder": "own_benchmark/1_fake",
     },
 }
 

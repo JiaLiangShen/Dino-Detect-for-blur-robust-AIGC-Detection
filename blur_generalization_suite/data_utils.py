@@ -94,6 +94,78 @@ def apply_blur_to_tensor(images: torch.Tensor, blur_type: str, strength: float) 
     raise ValueError(f"Unknown blur_type: {blur_type}")
 
 
+def _gaussian_kernel_2d(kernel_size: int, sigma: float, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
+    coords = torch.arange(kernel_size, device=device, dtype=dtype) - (kernel_size - 1) / 2.0
+    yy, xx = torch.meshgrid(coords, coords, indexing="ij")
+    kernel = torch.exp(-(xx.pow(2) + yy.pow(2)) / (2 * sigma * sigma))
+    return kernel / kernel.sum()
+
+
+def build_blur_kernel(blur_type: str, strength: float, device: torch.device, dtype: torch.dtype = torch.float32) -> torch.Tensor:
+    kernel_size = _kernel_size_from_strength(strength)
+    if blur_type == "motion":
+        kernel = torch.zeros(kernel_size, kernel_size, device=device, dtype=dtype)
+        kernel[kernel_size // 2, :] = 1.0
+        return kernel / kernel.sum()
+    if blur_type == "gaussian":
+        sigma = max(0.1, strength * 10.0)
+        return _gaussian_kernel_2d(kernel_size, sigma, device, dtype)
+    raise ValueError(f"Unknown blur_type: {blur_type}")
+
+
+def _expand_stats(stats: Tuple[float, float, float], device: torch.device, dtype: torch.dtype) -> torch.Tensor:
+    return torch.tensor(stats, device=device, dtype=dtype).view(1, -1, 1, 1)
+
+
+def unnormalize_tensor_images(images: torch.Tensor, mean: Tuple[float, float, float], std: Tuple[float, float, float]) -> torch.Tensor:
+    return images * _expand_stats(std, images.device, images.dtype) + _expand_stats(mean, images.device, images.dtype)
+
+
+def normalize_tensor_images(images: torch.Tensor, mean: Tuple[float, float, float], std: Tuple[float, float, float]) -> torch.Tensor:
+    return (images - _expand_stats(mean, images.device, images.dtype)) / _expand_stats(std, images.device, images.dtype)
+
+
+def apply_blur_to_normalized_tensor(images: torch.Tensor, blur_type: str, strength: float, mean: Tuple[float, float, float], std: Tuple[float, float, float]) -> torch.Tensor:
+    input_was_3d = images.ndim == 3
+    if input_was_3d:
+        images = images.unsqueeze(0)
+    raw_images = unnormalize_tensor_images(images.float(), mean, std).clamp(0.0, 1.0)
+    blurred_raw = apply_blur_to_tensor(raw_images, blur_type, strength).clamp(0.0, 1.0)
+    normalized = normalize_tensor_images(blurred_raw, mean, std)
+    return normalized.squeeze(0) if input_was_3d else normalized
+
+
+def apply_wiener_deblur_to_tensor(images: torch.Tensor, blur_type: str, strength: float, regularization: float = 0.01, mean: Tuple[float, float, float] | None = None, std: Tuple[float, float, float] | None = None) -> torch.Tensor:
+    if not isinstance(images, torch.Tensor):
+        raise TypeError("images must be a torch.Tensor")
+
+    input_was_3d = images.ndim == 3
+    if input_was_3d:
+        images = images.unsqueeze(0)
+
+    working = images.float()
+    if mean is not None and std is not None:
+        working = unnormalize_tensor_images(working, mean, std)
+    working = working.clamp(0.0, 1.0)
+
+    batch_size, channels, height, width = working.shape
+    kernel_small = build_blur_kernel(blur_type, strength, device=working.device, dtype=working.dtype)
+    psf = torch.zeros((height, width), device=working.device, dtype=working.dtype)
+    kh, kw = kernel_small.shape
+    top = (height - kh) // 2
+    left = (width - kw) // 2
+    psf[top : top + kh, left : left + kw] = kernel_small
+    psf_fft = torch.fft.fft2(torch.fft.ifftshift(psf))
+    wiener_filter = torch.conj(psf_fft) / (torch.abs(psf_fft).pow(2) + regularization)
+
+    restored_fft = torch.fft.fft2(working, dim=(-2, -1)) * wiener_filter.view(1, 1, height, width)
+    restored = torch.fft.ifft2(restored_fft, dim=(-2, -1)).real.clamp(0.0, 1.0)
+
+    if mean is not None and std is not None:
+        restored = normalize_tensor_images(restored, mean, std)
+    return restored.squeeze(0) if input_was_3d else restored
+
+
 def apply_pil_jpeg(img: Image.Image, quality: int) -> Image.Image:
     buffer = BytesIO()
     img.save(buffer, format="JPEG", quality=quality)

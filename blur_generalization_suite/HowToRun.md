@@ -1,63 +1,51 @@
-下面我按“真的要把这 3 组实验跑起来”的视角，完整带你走一遍。
-
-先说两个总原则。
-
-1. 最好不要直接改脚本里的默认地址，优先用命令行参数覆盖。
-2. 真正需要改文件的地方，主要只有两个：
-   - 测试集路径不一致时，改 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py)
-   - 你想永久改默认训练预设时，改 [train_teacher_student_backbones.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/train_teacher_student_backbones.py#L43)
-
-我下面默认你是在仓库根目录运行命令：
-`E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main`
-
-下面命令按 `bash/Linux` 写。如果你在 `PowerShell` 里跑，把换行反斜杠 `\` 去掉，写成一行就行。
+# 运行指南
+---
+本文档为当前模糊泛化实验提供实操运行手册。以下所有命令均需在代码仓库根目录执行：
+`E:/.../Dino-Detect-for-blur-robust-AIGC-Detection-main`
+若使用 PowerShell，单行完整书写每条命令同样可以正常运行。
 
 ---
-
-**先准备环境**
-1. 确保环境里有这些包：`torch`、`torchvision`、`transformers`、`scikit-learn`、`opencv-python`、`Pillow`、`matplotlib`、`numpy`。
-2. 确保你能 `torchrun --nproc_per_node=8` 正常起分布式训练。如果你不是 8 卡，就把 `8` 改成你实际 GPU 数。
-3. 先检查模型和数据目录是否存在。
+## 1. 环境检查清单
+请确保运行环境已安装以下依赖库：
+- `torch`
+- `torchvision`
+- `transformers`
+- `timm`
+- `scikit-learn`
+- `opencv-python`
+- `Pillow`
+- `matplotlib`
+- `numpy`
 
 ---
+## 2. 实验一：CLIP ViT-bigG / EVA-Giant + LoRA
+### 实验目标
+冻结骨干网络，仅训练 LoRA 参数与分类头。训练阶段加入模糊增强，随后在干净数据集与模糊基准数据集上完成评估测试。
 
-**实验 1：CLIP + LoRA、ViT-Large + LoRA，固定 backbone，只做 blur augmentation，不做 distill**
+### 结果记录规则
+你可以自主选择实验记录指标的依据：
+- 训练过程最优精度 `best`
+- 最后一轮 epoch 精度 `last`
 
-参数入口在 [train_lora_blur.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/train_lora_blur.py#L260) 和 [eval_cross_dataset.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/eval_cross_dataset.py#L91)。
+切换参数配置：
+- `--report-checkpoint best`
+- `--report-checkpoint last`
 
-1. 你要准备的数据和模型
-   - 训练集根目录。
-   - 当前脚本默认是：`/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`
-   - 这个目录要满足“分类子目录 -> `0_real/1_fake`”或“分类子目录 -> `nature/ai`”结构。
-   - CCMBA 模糊增强目录。
-   - 当前默认是：`/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
-   - 这个目录要满足“分类子目录 -> `nature` 或 `ai` -> `blurred_images` / `blur_masks` / `metadata`”结构。
-   - CLIP backbone 本地目录。
-   - 当前默认在 [model_zoo.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/model_zoo.py) 里是：`/nas_train/app.e0016372/models/clip-vit-large-patch14`
-   - ViT-Large backbone 本地目录。
-   - 当前默认是：`/nas_train/app.e0016372/models/vit-large-patch16-224-in21k`
-   - cross-dataset 测试集路径。
-   - 这些都写死在 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py) 里。
+训练脚本会自动保存以下模型文件：`best_lora_model.pth`、`last_lora_model.pth`、`latest_lora_model.pth` 以及 `selected_lora_model.pth`。如需模型文件与记录规则保持一致，后续可使用 `selected_lora_model.pth`。
 
-2. 你需要改什么地址
-   - 如果训练集不是 `/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`，训练时传 `--train-root`。
-   - 如果 CCMBA 不是 `/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`，训练时传 `--ccmba-data-dir`。
-   - 如果 CLIP / ViT-Large 的本地模型目录不同，训练时传 `--backbone-path`。
-   - 如果测试集路径不对，只能改 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py)。
+### 默认模糊配置
+默认参数与原始运动模糊训练逻辑保持统一：
+- `blur_prob = 0.1`
+- `blur_mode = mixed`
+- `blur_type = motion`
+- `mixed_mode_ratio = 0.5`
 
-3. 你要不要改 blur 配置
-   - 当前 LoRA 脚本默认是 `mixed + motion + blur_prob=0.2 + range=(0.1,0.3) + mixed_ratio=0.5`。
-   - 如果你要“严格跟原 `train_motion.py` 的 motion teacher-student 模糊比例一致”，建议把 `--blur-prob 0.1` 显式写上。
-   - 如果你要“跟你 0125 的 direct-train 风格一致”，就用默认 `0.2`。
-   - 你这组实验最重要的是：`CLIP` 和 `ViT-Large` 必须用同一套 blur 参数，不要一个 0.1 一个 0.2。
-
-4. 推荐命令
-   - 如果你要对齐原 `train_motion.py` 风格，我建议这组都用 `blur_prob=0.1`。
-
+---
+### 训练 CLIP ViT-bigG（记录最优模型 best）
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
   --model-family clip_lora \
-  --backbone-path /nas_train/app.e0016372/models/clip-vit-large-patch14 \
+  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
   --train-root /data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4 \
   --ccmba-data-dir /home/work/xueyunqi/11ar_datasets/progan_ccmba_train \
   --blur-mode mixed \
@@ -66,267 +54,204 @@ torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
   --blur-min 0.1 \
   --blur-max 0.3 \
   --mixed-mode-ratio 0.5 \
+  --report-checkpoint best \
   --local-files-only
 ```
-
-```bash
-torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
-  --model-family vit_large_lora \
-  --backbone-path /nas_train/app.e0016372/models/vit-large-patch16-224-in21k \
-  --train-root /data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4 \
-  --ccmba-data-dir /home/work/xueyunqi/11ar_datasets/progan_ccmba_train \
-  --blur-mode mixed \
-  --blur-type motion \
-  --blur-prob 0.1 \
-  --blur-min 0.1 \
-  --blur-max 0.3 \
-  --mixed-mode-ratio 0.5 \
-  --local-files-only
-```
-
-5. 训练完成后去哪找模型
-   - 输出目录默认在：
-   - `blur_generalization_suite/outputs/lora_train/`
-   - 每个实验会生成一个子目录，命名规则类似：
-   - `clip_lora_clip-vit-large-patch14_blur01`
-   - `vit_large_lora_vit-large-patch16-224-in21k_blur01`
-   - 里面重点看：
-   - `best_lora_model.pth`
-   - `training_history.json`
-
-6. 怎么测试 clean / blur 和导出 Table 4/5/6/7
-   - 用 [eval_cross_dataset.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/eval_cross_dataset.py#L91)
-
-```bash
-python blur_generalization_suite/eval_cross_dataset.py \
-  --model-path blur_generalization_suite/outputs/lora_train/clip_lora_clip-vit-large-patch14_blur01/best_lora_model.pth \
-  --dataset-group all \
-  --blur-mode both \
-  --blur-type motion \
-  --blur-min 0.1 \
-  --blur-max 0.3
-```
-
-```bash
-python blur_generalization_suite/eval_cross_dataset.py \
-  --model-path blur_generalization_suite/outputs/lora_train/vit_large_lora_vit-large-patch16-224-in21k_blur01/best_lora_model.pth \
-  --dataset-group all \
-  --blur-mode both \
-  --blur-type motion \
-  --blur-min 0.1 \
-  --blur-max 0.3
-```
-
-7. 评估完成后看哪些结果
-   - 每个模型的评估输出会在该 checkpoint 同级目录下新建 `cross_dataset_eval`
-   - 里面重点看：
-   - `cross_dataset_eval_时间戳.json`
-   - `cross_dataset_summary_时间戳.csv`
-   - `table4_clean_accuracy.csv`
-   - `table5_blur_accuracy.csv`
-   - `table6_clean_f1.csv`
-   - `table7_blur_f1.csv`
-   - 这 4 个 csv 就是你扩展 Table 4/5/6/7 的直接材料。
-   - 注意：脚本是“每个模型各导一套 csv”，最终论文总表你还需要把多个模型结果汇总到一张表里。
 
 ---
+### 训练 CLIP ViT-bigG（记录最后一轮模型 last）
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
+  --model-family clip_lora \
+  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
+  --train-root /data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4 \
+  --ccmba-data-dir /home/work/xueyunqi/11ar_datasets/progan_ccmba_train \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --blur-min 0.1 \
+  --blur-max 0.3 \
+  --mixed-mode-ratio 0.5 \
+  --report-checkpoint last \
+  --local-files-only
+```
 
-**实验 2：DINOv3 ViT-Large-300M / ViT-Huge-840M，teacher-student 框架不变，只换 backbone，在 SDV1.4 训练，在 AIGCBenchmark 测试**
+---
+### 训练 EVA-Giant
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_lora_blur.py \
+  --model-family eva_giant_lora \
+  --backbone-path /nas_train/app.e0016372/models/blur_generalization_hf_backbones/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k \
+  --train-root /data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4 \
+  --ccmba-data-dir /home/work/xueyunqi/11ar_datasets/progan_ccmba_train \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --blur-min 0.1 \
+  --blur-max 0.3 \
+  --mixed-mode-ratio 0.5 \
+  --report-checkpoint best \
+  --local-files-only
+```
 
-参数入口在 [train_teacher_student_backbones.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/train_teacher_student_backbones.py#L478) 和 [eval_teacher_student_aigc.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/eval_teacher_student_aigc.py#L83)。
+---
+### 训练输出文件
+每个 LoRA 实验目录将生成以下文件：
+- `best_lora_model.pth`
+- `last_lora_model.pth`
+- `latest_lora_model.pth`
+- `selected_lora_model.pth`
+- `training_history.json`
 
-1. 你要准备的数据和模型
-   - DINOv3 ViT-Large-300M 本地目录。
-   - 默认是：`/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m`
-   - DINOv3 ViT-Huge-840M 本地目录。
-   - 默认是：`/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m`
-   - 训练集。
-   - 这次你要的是 SDV1.4，所以建议直接用 `--data-preset sdv14`
-   - 它对应的训练根目录是 `/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4`
-   - 对应的 CCMBA 是 `/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44`
-   - AIGCBenchmark 测试路径。
-   - 还是来自 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py)
+`training_history.json` 新增记录字段：
+- `train_acc`
+- `train_bacc`
+- `train_real_acc`
+- `train_fake_acc`
 
-2. 你需要改什么地址
-   - 如果大模型本地目录不同，训练时传 `--dinov3-model-id`，或者换 `--backbone-preset`。
-   - 如果你 SDV1.4 训练目录不一样，直接传 `--train-root`。
-   - 如果 SDV1.4 对应的 CCMBA 目录不一样，直接传 `--ccmba-data-dir`。
-   - 如果 AIGCBenchmark 测试路径不一致，改 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py)。
+---
+## 3. 实验一评估：跨数据集 干净/模糊 测试
+```bash
+python blur_generalization_suite/eval_cross_dataset.py \
+  --model-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
+  --dataset-group all \
+  --blur-mode both \
+  --blur-type motion \
+  --blur-min 0.1 \
+  --blur-max 0.3
+```
 
-3. 这一组最关键的设置
-   - 你说“策略和训练情况不用动”，所以推荐这样理解：
-   - teacher-student 两阶段不变
-   - teacher clean / student blur 不变
-   - strong augmentation 不变
-   - `local_files_only=True` 保持原版
-   - 只换 backbone
-   - 但有一个细节你要自己定一下：
-   - 原 `train_motion.py` 的 `BLUR_PROB` 是 `0.1`
-   - 当前新脚本默认是 `0.2`
-   - 如果你要最严格地“和原 teacher-student 策略对齐”，建议这里显式传 `--blur-prob 0.1`
+---
+### 评估输出文件
+评估目录将生成：
+- `cross_dataset_eval_<timestamp>.json`
+- `cross_dataset_summary_<timestamp>.csv`
+- `table4_clean_accuracy.csv`
+- `table5_blur_accuracy.csv`
+- `table6_clean_f1.csv`
+- `table7_blur_f1.csv`
+- `clean_bacc.csv`
+- `blur_bacc.csv`
 
-4. 推荐命令
-   - ViT-Large-300M
+---
+## 4. 实验二：师生骨干网络遍历实验
+### SimCLR / 对比对齐
+学生阶段的对比损失权重可通过 `--alpha-simclr` 显式设置。默认值保持 `0.3`，与原始 `train_motion.py` 学生阶段配置一致。
 
+### 训练 DINOv3 ViT-Large-300M
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
   --backbone-preset dinov3_vitl300m \
   --data-preset sdv14 \
   --blur-mode mixed \
   --blur-type motion \
-  --blur-prob 0.1
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
 ```
 
-   - ViT-Huge-840M
-
+### 训练 DINOv3 ViT-Huge-840M
 ```bash
 torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
   --backbone-preset dinov3_vith840m \
   --data-preset sdv14 \
   --blur-mode mixed \
   --blur-type motion \
-  --blur-prob 0.1
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
 ```
 
-5. 训练完成后去哪找模型
-   - 输出目录默认在：
-   - `blur_generalization_suite/outputs/teacher_student/`
-   - 子目录名称类似：
-   - `dinov3-vitl16-pretrain-lvd1689m_sdv14_teacher_student_blur01`
-   - `dinov3-vith16plus-pretrain-lvd1689m_sdv14_teacher_student_blur01`
-   - 里面重点看：
-   - `best_teacher_model.pth`
-   - `best_student_model.pth`
-   - `training_history.json`
-
-6. 怎么评估 student 在 AIGCBenchmark 上的 generalization
-   - 一般正文里你更应该看 `student`
-
+### 在 AIGC 基准数据集评估学生模型
 ```bash
 python blur_generalization_suite/eval_teacher_student_aigc.py \
-  --model-path blur_generalization_suite/outputs/teacher_student/dinov3-vitl16-pretrain-lvd1689m_sdv14_teacher_student_blur01/best_student_model.pth \
+  --model-path blur_generalization_suite/outputs/teacher_student/.../best_student_model.pth \
   --branch student \
   --dataset-group aigc_benchmark \
   --blur-mode both \
   --blur-type motion
 ```
 
-```bash
-python blur_generalization_suite/eval_teacher_student_aigc.py \
-  --model-path blur_generalization_suite/outputs/teacher_student/dinov3-vith16plus-pretrain-lvd1689m_sdv14_teacher_student_blur01/best_student_model.pth \
-  --branch student \
-  --dataset-group aigc_benchmark \
-  --blur-mode both \
-  --blur-type motion
-```
-
-7. 要不要顺手测 teacher
-   - 可以。
-   - 如果你想做附录或分析 teacher/student 差异，再跑一遍 `--branch teacher`
-
-```bash
-python blur_generalization_suite/eval_teacher_student_aigc.py \
-  --model-path blur_generalization_suite/outputs/teacher_student/dinov3-vitl16-pretrain-lvd1689m_sdv14_teacher_student_blur01/best_teacher_model.pth \
-  --branch teacher \
-  --dataset-group aigc_benchmark \
-  --blur-mode both \
-  --blur-type motion
-```
-
-8. 评估完成后看哪些结果
-   - 每个 checkpoint 同级会生成：
-   - `aigc_eval_student/` 或 `aigc_eval_teacher/`
-   - 里面重点看：
-   - `aigc_eval_时间戳.json`
-   - `aigc_eval_summary_时间戳.csv`
+师生模型评估流程现已支持输出与 LoRA 评估一致的平衡准确率指标，包含 `clean_bacc.csv` 和 `blur_bacc.csv`。
 
 ---
+## 5. 实验三：DINOv3 模糊一致性分析
+### 默认分析参数范围
+- `min_blur = 0.0`
+- `max_blur = 0.5`
+- `step = 0.1`
 
-**实验 3：不同 blur 强度下 DINOv3 特征稳定性可视化 / 测试**
-
-参数入口在 [analyze_dinov3_blur_consistency.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/analyze_dinov3_blur_consistency.py#L85)。
-
-1. 你要准备的数据和模型
-   - DINOv3 模型目录。
-   - 默认就是你前面说的那个系列里的 `vit7b`：
-   - `/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m`
-   - 一批待分析的图片目录。
-   - 这里只需要图片，不需要标签。
-   - 你可以直接给一个真实图目录，或一个伪造图目录。
-   - 如果你想更像 Figure 4 最后一列那种图，建议固定一个子集，不要每次混很多不同来源。
-
-2. 你需要改什么地址
-   - 如果 DINOv3 路径不同，传 `--model-path`
-   - 图片目录必须显式传 `--data-root`
-   - 不需要改任何训练脚本
-   - 不需要改 `dataset_configs.py`
-
-3. 推荐怎么选 `data-root`
-   - 如果你想看 fake 图的稳定性，可以用：
-   - `/data/app.e0016372/11ar_datasets/test/wukong/1_fake`
-   - 如果你想看 real 图的稳定性，可以用：
-   - `/data/app.e0016372/11ar_datasets/test/wukong/0_real`
-   - 如果你想两类都看，最简单的办法是分两次跑。
-   - 这个脚本一次只接收一个目录。
-
-4. 推荐命令
-   - 先跑 fake 子集
-
+### 运行一致性分析脚本
 ```bash
 python blur_generalization_suite/analyze_dinov3_blur_consistency.py \
   --model-path /nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m \
   --data-root /data/app.e0016372/11ar_datasets/test/wukong/1_fake \
   --blur-type motion \
   --min-blur 0.0 \
-  --max-blur 0.3 \
-  --step 0.05 \
+  --max-blur 0.5 \
+  --step 0.1 \
   --max-images 64 \
   --local-files-only
 ```
 
-   - 再跑 real 子集
+### 输出文件
+- `per_image_consistency.json`
+- `average_consistency.json`
+- `dinov3_consistency_curve.png`
 
+---
+## 6. 新增实验：去模糊 -> 检测模型链路
+### 实验目标
+对比三类检测器在无模糊、模糊、模糊后去模糊三种场景下的性能：
+- `DINOv3 student`
+- `CLIP LoRA`
+- `EVA-Giant LoRA`
+
+### 基准数据集默认目录结构
+- `own_benchmark/0_real`
+- `own_benchmark/1_fake`
+
+### 运行去模糊基准测试
 ```bash
-python blur_generalization_suite/analyze_dinov3_blur_consistency.py \
-  --model-path /nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m \
-  --data-root /data/app.e0016372/11ar_datasets/test/wukong/0_real \
+python blur_generalization_suite/eval_deblur_benchmark.py \
+  --dataset-name own_benchmark \
+  --dinov3-student-path blur_generalization_suite/outputs/teacher_student/.../best_student_model.pth \
+  --clip-lora-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
+  --eva-lora-path blur_generalization_suite/outputs/lora_train/.../selected_lora_model.pth \
+  --pipelines no_blur blur blur_then_deblur \
   --blur-type motion \
-  --min-blur 0.0 \
-  --max-blur 0.3 \
-  --step 0.05 \
-  --max-images 64 \
-  --local-files-only
+  --blur-strength 0.3 \
+  --deblur-regularization 0.01
 ```
 
-5. 跑完后看哪些结果
-   - 输出目录默认在：
-   - `blur_generalization_suite/outputs/dinov3_consistency/`
-   - 里面重点看：
-   - `per_image_consistency.json`
-   - `average_consistency.json`
-   - `dinov3_consistency_curve.png`
+### 使用自定义数据集目录
+```bash
+python blur_generalization_suite/eval_deblur_benchmark.py \
+  --real-folder /your/path/0_real \
+  --fake-folder /your/path/1_fake \
+  --dinov3-student-path ... \
+  --clip-lora-path ... \
+  --eva-lora-path ...
+```
 
-6. 怎么理解结果
-   - 如果你的预期成立，`dinov3_consistency_curve.png` 应该随着 blur strength 增大略有下降，但不会掉得特别夸张。
-   - 如果你想让曲线更细，可以把 `--step 0.05` 改成 `0.02`
-   - 如果你想让统计更稳，可以把 `--max-images 64` 提高到 `128` 或 `256`
-
----
-
-**哪些地方你最可能真的要手动改文件**
-1. 如果测试集挂载路径和我现在写的不一样，改 [dataset_configs.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/dataset_configs.py)
-2. 如果你想永久把 teacher-student 默认训练预设改成 `sdv14`，改 [train_teacher_student_backbones.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/train_teacher_student_backbones.py#L43) 和 [train_teacher_student_backbones.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/train_teacher_student_backbones.py#L480)
-3. 如果你想永久改 LoRA 默认 backbone 地址，改 [model_zoo.py](E:/薛云起研究生阶段其他文件/2025暑期实习/最终百度实习大模型/dino-ditect_all_codes/Dino-Detect-for-blur-robust-AIGC-Detection-main/blur_generalization_suite/model_zoo.py)
+### 输出文件
+- `deblur_benchmark_eval_<timestamp>.json`
+- `deblur_benchmark_summary_<timestamp>.csv`
 
 ---
+## 7. 指标说明补充
+平衡准确率定义规则：
+- `real_accuracy`：真实样本识别准确率
+- `fake_accuracy`：伪造样本识别准确率
+- `bacc = (real_accuracy + fake_accuracy) / 2`
+- `balanced_accuracy_half_gap = |real_accuracy - fake_accuracy| / 2`
 
-**我给你的最推荐执行顺序**
-1. 先完成实验 1 的 `CLIP + LoRA`
-2. 再完成实验 1 的 `ViT-Large + LoRA`
-3. 跑两次 `eval_cross_dataset.py`，先把 Table 4/5/6/7 材料拿到
-4. 再跑实验 2 的 `ViT-Large-300M teacher-student`
-5. 再跑实验 2 的 `ViT-Huge-840M teacher-student`
-6. 跑 `eval_teacher_student_aigc.py` 拿到 generalization 结果
-7. 最后跑实验 3 的 consistency 图
+标准报告格式：
+- `bacc +- balanced_accuracy_half_gap`
 
-如果你愿意，我下一条可以直接帮你把这三组实验整理成一份“可直接复制执行的命令清单”，我会按你的服务器路径写成最终版。
+---
+## 8. 最终规范建议
+为保证开源发布与实验报告统一规范，请遵守以下要求：
+1. 实验一统一使用 `selected_lora_model.pth` 作为评估模型；
+2. 运行命令务必显式标注 `--report-checkpoint best` 或 `--report-checkpoint last`；
+3. 师生网络实验强制写明 `--alpha-simclr 0.3` 参数；
+4. 模糊一致性曲线图注需标注参数范围：`0.0 -> 0.5`，步长 `0.1`；
+5. 去模糊实验说明中需注明：当前实现基于经典 Wiener 去模糊基线算法。

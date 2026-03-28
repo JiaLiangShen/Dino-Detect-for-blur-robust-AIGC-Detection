@@ -19,6 +19,10 @@ from blur_generalization_suite.model_zoo import create_lora_model_from_config
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+BACC_EXPORT_SPECS = [
+    ("clean_bacc", "no_blur", "bacc"),
+    ("blur_bacc", "global", "bacc"),
+]
 
 
 def load_model(model_path: str, device: torch.device):
@@ -67,6 +71,7 @@ def build_model_metadata(config: dict) -> dict:
         "backbone_name": backbone_name,
         "backbone_repo_id": backbone_repo_id,
         "backbone_path": backbone_path,
+        "report_checkpoint": config.get("report_checkpoint", "best"),
     }
 
 
@@ -77,9 +82,14 @@ def write_summary_csv(path: Path, results: dict, model_metadata: dict) -> None:
             "model_family",
             "backbone_name",
             "backbone_repo_id",
+            "report_checkpoint",
             "dataset",
             "blur_mode",
             "accuracy",
+            "bacc",
+            "real_accuracy",
+            "fake_accuracy",
+            "balanced_accuracy_half_gap",
             "precision",
             "recall",
             "f1_score",
@@ -91,9 +101,14 @@ def write_summary_csv(path: Path, results: dict, model_metadata: dict) -> None:
                     model_metadata["model_family"],
                     model_metadata["backbone_name"],
                     model_metadata["backbone_repo_id"],
+                    model_metadata["report_checkpoint"],
                     dataset_name,
                     blur_mode,
                     metrics["accuracy"],
+                    metrics["bacc"],
+                    metrics["real_accuracy"],
+                    metrics["fake_accuracy"],
+                    metrics["balanced_accuracy_half_gap"],
                     metrics["precision"],
                     metrics["recall"],
                     metrics["f1_score"],
@@ -101,8 +116,8 @@ def write_summary_csv(path: Path, results: dict, model_metadata: dict) -> None:
                 ])
 
 
-def write_table_exports(output_dir: Path, results: dict, model_metadata: dict) -> None:
-    for filename, blur_mode, metric_name in TABLE_EXPORT_SPECS:
+def write_metric_exports(output_dir: Path, results: dict, model_metadata: dict) -> None:
+    for filename, blur_mode, metric_name in [*TABLE_EXPORT_SPECS, *BACC_EXPORT_SPECS]:
         path = output_dir / f"{filename}.csv"
         with path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
@@ -178,7 +193,10 @@ def main() -> None:
             metrics["blur_mode"] = mode
             metrics["time_seconds"] = time.time() - start
             dataset_results[mode] = metrics
-            print(f"  {mode}: acc={metrics['accuracy']:.4f}, f1={metrics['f1_score']:.4f}")
+            print(
+                f"  {mode}: acc={metrics['accuracy']:.4f}, "
+                f"bacc={metrics['bacc']:.4f}, f1={metrics['f1_score']:.4f}"
+            )
 
         all_results[dataset_name] = dataset_results
 
@@ -203,7 +221,7 @@ def main() -> None:
         },
     )
     write_summary_csv(output_dir / f"cross_dataset_summary_{timestamp}.csv", all_results, model_metadata)
-    write_table_exports(output_dir, all_results, model_metadata)
+    write_metric_exports(output_dir, all_results, model_metadata)
     print(f"Results saved to: {output_dir}")
 
 

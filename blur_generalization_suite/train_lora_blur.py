@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 import sys
 import time
 from pathlib import Path
@@ -52,12 +52,40 @@ def experiment_name(args: argparse.Namespace) -> str:
     return f"{args.model_family}_{backbone_name}_blur{blur_prob_tag}"
 
 
+def _safe_percent(numerator: float, denominator: float) -> float:
+    return 100.0 * numerator / denominator if denominator else 0.0
+
+
+def _build_epoch_metrics(total_loss: float, total_correct: float, total_samples: float, real_correct: float, real_total: float, fake_correct: float, fake_total: float, divisor: float) -> dict:
+    avg_loss = total_loss / max(divisor, 1.0)
+    accuracy = _safe_percent(total_correct, total_samples)
+    real_accuracy = _safe_percent(real_correct, real_total)
+    fake_accuracy = _safe_percent(fake_correct, fake_total)
+    balanced_accuracy = 0.5 * (real_accuracy + fake_accuracy)
+    balanced_accuracy_half_gap = abs(fake_accuracy - real_accuracy) / 2.0
+    return {
+        "loss": avg_loss,
+        "accuracy": accuracy,
+        "real_accuracy": real_accuracy,
+        "fake_accuracy": fake_accuracy,
+        "balanced_accuracy": balanced_accuracy,
+        "balanced_accuracy_half_gap": balanced_accuracy_half_gap,
+        "total_samples": int(total_samples),
+        "real_total": int(real_total),
+        "fake_total": int(fake_total),
+    }
+
+
 def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank, world_size):
     actual_model = model.module if hasattr(model, "module") else model
     model.train()
     total_loss = 0.0
     total_correct = 0.0
     total_samples = 0.0
+    real_correct = 0.0
+    real_total = 0.0
+    fake_correct = 0.0
+    fake_total = 0.0
 
     for batch_idx, (images, labels, image_names, categories) in enumerate(train_loader):
         optimizer.zero_grad(set_to_none=True)
@@ -79,32 +107,102 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
         scaler.step(optimizer)
         scaler.update()
 
+        preds = logits.argmax(dim=1)
+        real_mask = labels == 0
+        fake_mask = labels == 1
+
         total_loss += loss.item()
-        total_correct += (logits.argmax(dim=1) == labels).sum().item()
+        total_correct += (preds == labels).sum().item()
         total_samples += labels.size(0)
+        real_correct += (preds[real_mask] == labels[real_mask]).sum().item()
+        real_total += real_mask.sum().item()
+        fake_correct += (preds[fake_mask] == labels[fake_mask]).sum().item()
+        fake_total += fake_mask.sum().item()
 
         if rank == 0 and (batch_idx + 1) % 10 == 0:
-            avg_loss = total_loss / (batch_idx + 1)
-            avg_acc = 100.0 * total_correct / max(total_samples, 1.0)
+            metrics = _build_epoch_metrics(
+                total_loss=total_loss,
+                total_correct=total_correct,
+                total_samples=total_samples,
+                real_correct=real_correct,
+                real_total=real_total,
+                fake_correct=fake_correct,
+                fake_total=fake_total,
+                divisor=batch_idx + 1,
+            )
             print(
                 f"[Train] Batch {batch_idx + 1:04d}/{len(train_loader)} | "
-                f"Loss: {loss.item():.4f} | Avg Loss: {avg_loss:.4f} | Acc: {avg_acc:.2f}%"
+                f"Loss: {loss.item():.4f} | Avg Loss: {metrics['loss']:.4f} | "
+                f"Acc: {metrics['accuracy']:.2f}% | BACC: {metrics['balanced_accuracy']:.2f}%"
             )
 
     if world_size > 1:
-        loss_tensor = torch.tensor(total_loss, device=device, dtype=torch.float32)
-        correct_tensor = torch.tensor(total_correct, device=device, dtype=torch.float32)
-        samples_tensor = torch.tensor(total_samples, device=device, dtype=torch.float32)
-        all_reduce_tensor(loss_tensor, world_size)
-        all_reduce_tensor(correct_tensor, world_size)
-        all_reduce_tensor(samples_tensor, world_size)
-        total_loss = loss_tensor.item()
-        total_correct = correct_tensor.item()
-        total_samples = samples_tensor.item()
+        total_loss_tensor = torch.tensor(total_loss, device=device, dtype=torch.float32)
+        total_correct_tensor = torch.tensor(total_correct, device=device, dtype=torch.float32)
+        total_samples_tensor = torch.tensor(total_samples, device=device, dtype=torch.float32)
+        real_correct_tensor = torch.tensor(real_correct, device=device, dtype=torch.float32)
+        real_total_tensor = torch.tensor(real_total, device=device, dtype=torch.float32)
+        fake_correct_tensor = torch.tensor(fake_correct, device=device, dtype=torch.float32)
+        fake_total_tensor = torch.tensor(fake_total, device=device, dtype=torch.float32)
 
-    avg_loss = total_loss / max(len(train_loader) * world_size, 1)
-    avg_acc = 100.0 * total_correct / max(total_samples, 1.0)
-    return avg_loss, avg_acc
+        all_reduce_tensor(total_loss_tensor, world_size)
+        all_reduce_tensor(total_correct_tensor, world_size)
+        all_reduce_tensor(total_samples_tensor, world_size)
+        all_reduce_tensor(real_correct_tensor, world_size)
+        all_reduce_tensor(real_total_tensor, world_size)
+        all_reduce_tensor(fake_correct_tensor, world_size)
+        all_reduce_tensor(fake_total_tensor, world_size)
+
+        total_loss = total_loss_tensor.item()
+        total_correct = total_correct_tensor.item()
+        total_samples = total_samples_tensor.item()
+        real_correct = real_correct_tensor.item()
+        real_total = real_total_tensor.item()
+        fake_correct = fake_correct_tensor.item()
+        fake_total = fake_total_tensor.item()
+
+    return _build_epoch_metrics(
+        total_loss=total_loss,
+        total_correct=total_correct,
+        total_samples=total_samples,
+        real_correct=real_correct,
+        real_total=real_total,
+        fake_correct=fake_correct,
+        fake_total=fake_total,
+        divisor=len(train_loader) * world_size,
+    )
+
+
+def build_checkpoint(model, optimizer, scheduler, scaler, epoch: int, best_acc: float, best_epoch: int, history: dict, trainable_stats: dict, model_config: dict, args: argparse.Namespace, epoch_metrics: dict) -> dict:
+    return {
+        "epoch": epoch,
+        "trainable_state_dict": extract_trainable_state_dict(model.module),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "scaler_state_dict": scaler.state_dict(),
+        "best_acc": best_acc,
+        "best_epoch": best_epoch,
+        "last_acc": epoch_metrics["accuracy"],
+        "last_bacc": epoch_metrics["balanced_accuracy"],
+        "history": history,
+        "trainable_parameter_stats": trainable_stats,
+        "lora_modules": list(model.module.lora_modules),
+        "config": {
+            **model_config,
+            "train_root": args.train_root,
+            "ccmba_data_dir": args.ccmba_data_dir,
+            "blur_prob": args.blur_prob,
+            "blur_mode": args.blur_mode,
+            "blur_type": args.blur_type,
+            "blur_strength_range": [args.blur_min, args.blur_max],
+            "mixed_mode_ratio": args.mixed_mode_ratio,
+            "batch_size": args.batch_size,
+            "epochs": args.epochs,
+            "learning_rate": args.learning_rate,
+            "weight_decay": args.weight_decay,
+            "report_checkpoint": args.report_checkpoint,
+        },
+    }
 
 
 def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse.Namespace) -> None:
@@ -191,6 +289,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         print(f"Trainable params: {trainable_stats['trainable']} / {trainable_stats['total']}")
         print(f"LoRA modules: {len(model.module.lora_modules)}")
         print(f"Local files only: {args.local_files_only}")
+        print(f"Report checkpoint: {args.report_checkpoint}")
         print("=" * 70)
 
     criterion = FocalLoss(alpha=args.focal_alpha, gamma=args.focal_gamma)
@@ -199,60 +298,86 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
     scaler = GradScaler(enabled=device.type == "cuda")
 
     output_dir = ensure_dir(Path(args.output_dir) / experiment_name(args))
-    best_acc = 0.0
-    history = {"train_loss": [], "train_acc": []}
+    best_acc = float("-inf")
+    best_epoch = -1
+    best_bacc = 0.0
+    last_acc = 0.0
+    last_bacc = 0.0
+    history = {
+        "train_loss": [],
+        "train_acc": [],
+        "train_bacc": [],
+        "train_real_acc": [],
+        "train_fake_acc": [],
+    }
 
     for epoch in range(args.epochs):
         train_sampler.set_epoch(epoch)
         epoch_start = time.time()
-        loss, acc = train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank, world_size)
+        metrics = train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank, world_size)
         scheduler.step()
 
-        history["train_loss"].append(loss)
-        history["train_acc"].append(acc)
+        history["train_loss"].append(metrics["loss"])
+        history["train_acc"].append(metrics["accuracy"])
+        history["train_bacc"].append(metrics["balanced_accuracy"])
+        history["train_real_acc"].append(metrics["real_accuracy"])
+        history["train_fake_acc"].append(metrics["fake_accuracy"])
+
+        improved_best = metrics["accuracy"] >= best_acc
+        if improved_best:
+            best_acc = metrics["accuracy"]
+            best_bacc = metrics["balanced_accuracy"]
+            best_epoch = epoch
+        last_acc = metrics["accuracy"]
+        last_bacc = metrics["balanced_accuracy"]
 
         if rank == 0:
             elapsed = time.time() - epoch_start
-            print(f"Epoch {epoch + 1}/{args.epochs} | Loss: {loss:.4f} | Acc: {acc:.2f}% | Time: {elapsed:.1f}s")
+            print(
+                f"Epoch {epoch + 1}/{args.epochs} | Loss: {metrics['loss']:.4f} | "
+                f"Acc: {metrics['accuracy']:.2f}% | BACC: {metrics['balanced_accuracy']:.2f}% | "
+                f"Real: {metrics['real_accuracy']:.2f}% | Fake: {metrics['fake_accuracy']:.2f}% | Time: {elapsed:.1f}s"
+            )
 
-            checkpoint = {
-                "epoch": epoch,
-                "trainable_state_dict": extract_trainable_state_dict(model.module),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "scheduler_state_dict": scheduler.state_dict(),
-                "scaler_state_dict": scaler.state_dict(),
-                "best_acc": max(best_acc, acc),
-                "history": history,
-                "trainable_parameter_stats": trainable_stats,
-                "lora_modules": list(model.module.lora_modules),
-                "config": {
-                    **model_config,
-                    "train_root": args.train_root,
-                    "ccmba_data_dir": args.ccmba_data_dir,
-                    "blur_prob": args.blur_prob,
-                    "blur_mode": args.blur_mode,
-                    "blur_type": args.blur_type,
-                    "blur_strength_range": [args.blur_min, args.blur_max],
-                    "mixed_mode_ratio": args.mixed_mode_ratio,
-                    "batch_size": args.batch_size,
-                    "epochs": args.epochs,
-                    "learning_rate": args.learning_rate,
-                    "weight_decay": args.weight_decay,
-                },
-            }
+            checkpoint = build_checkpoint(
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                scaler=scaler,
+                epoch=epoch,
+                best_acc=best_acc,
+                best_epoch=best_epoch,
+                history=history,
+                trainable_stats=trainable_stats,
+                model_config=model_config,
+                args=args,
+                epoch_metrics=metrics,
+            )
             torch.save(checkpoint, output_dir / "latest_lora_model.pth")
-            if acc >= best_acc:
-                best_acc = acc
+            if epoch == args.epochs - 1:
+                torch.save(checkpoint, output_dir / "last_lora_model.pth")
+            if improved_best:
                 torch.save(checkpoint, output_dir / "best_lora_model.pth")
+            if args.report_checkpoint == "last" or improved_best:
+                torch.save(checkpoint, output_dir / "selected_lora_model.pth")
 
         barrier(world_size)
 
     if rank == 0:
+        report_model_path = output_dir / ("best_lora_model.pth" if args.report_checkpoint == "best" else "last_lora_model.pth")
         save_json(
             output_dir / "training_history.json",
             {
                 "history": history,
                 "best_acc": best_acc,
+                "best_bacc": best_bacc,
+                "best_epoch": best_epoch,
+                "last_acc": last_acc,
+                "last_bacc": last_bacc,
+                "last_epoch": args.epochs - 1,
+                "report_checkpoint": args.report_checkpoint,
+                "report_model_path": str(report_model_path),
+                "selected_model_path": str(output_dir / "selected_lora_model.pth"),
                 "trainable_parameter_stats": trainable_stats,
                 "lora_modules": list(model.module.lora_modules),
                 "config": {
@@ -264,10 +389,12 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
                     "blur_type": args.blur_type,
                     "blur_strength_range": [args.blur_min, args.blur_max],
                     "mixed_mode_ratio": args.mixed_mode_ratio,
+                    "report_checkpoint": args.report_checkpoint,
                 },
             },
         )
         print(f"Training artifacts saved to: {output_dir}")
+        print(f"Recommended report model: {report_model_path}")
 
     cleanup_distributed()
 
@@ -299,6 +426,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lora-targets", nargs="*", default=None)
     parser.add_argument("--focal-alpha", type=float, default=1.0)
     parser.add_argument("--focal-gamma", type=float, default=2.0)
+    parser.add_argument("--report-checkpoint", choices=["best", "last"], default="best", help="Choose whether this experiment should report best-accuracy or last-epoch results.")
     parser.add_argument("--output-dir", type=str, default="blur_generalization_suite/outputs/lora_train")
     parser.add_argument("--local-files-only", dest="local_files_only", action="store_true", help="Load CLIP/EVA checkpoints from local files only.")
     parser.add_argument("--allow-remote-backbone", dest="local_files_only", action="store_false", help="Allow remote Hugging Face resolution when a local snapshot is unavailable.")

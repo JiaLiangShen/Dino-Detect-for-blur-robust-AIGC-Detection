@@ -95,6 +95,7 @@ def build_common_config(args: argparse.Namespace, transform_config: TransformCon
         "blur_prob": args.blur_prob,
         "blur_strength_range": [args.blur_min, args.blur_max],
         "mixed_mode_ratio": args.mixed_mode_ratio,
+        "alpha_simclr": args.alpha_simclr,
         "enable_strong_aug": True,
         "transform_config": {
             "resize_size": transform_config.resize_size,
@@ -409,6 +410,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         print(f"CCMBA data dir: {args.ccmba_data_dir}")
         print(f"Dataset size (teacher/student): {len(teacher_dataset)} / {len(student_dataset)}")
         print(f"Trainable params: {stats['trainable']} / {stats['total']}")
+        print(f"Alpha SimCLR: {args.alpha_simclr}")
         print(f"Local files only: {args.local_files_only}")
         print("=" * 70)
 
