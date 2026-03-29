@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import csv
 import sys
 import time
@@ -92,7 +92,7 @@ def build_model_entries(args: argparse.Namespace):
     if args.clip_lora_path:
         entries.append(("clip_lora", args.clip_lora_path, None))
     if args.eva_lora_path:
-        entries.append(("eva_giant_lora", args.eva_lora_path, None))
+        entries.append(("eva_lora", args.eva_lora_path, None))
     if not entries:
         raise ValueError("At least one model path must be provided.")
     return entries
@@ -271,3 +271,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

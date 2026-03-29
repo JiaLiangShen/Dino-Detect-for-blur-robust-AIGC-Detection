@@ -26,7 +26,7 @@ from .data_utils import TransformConfig
 
 HF_BACKBONE_ROOT = os.environ.get(
     "BLUR_GENERALIZATION_HF_BACKBONE_ROOT",
-    "/nas_train/app.e0016372/models",
+    "/nas_train/app.e0016372/models/blur_generalization_hf_backbones",
 )
 
 
@@ -40,9 +40,18 @@ class LoraBackboneSpec:
     default_lora_targets: Tuple[str, ...]
 
 
+TIMM_VIT_LORA_TARGETS = (
+    "attn.qkv",
+    "attn.q_proj",
+    "attn.k_proj",
+    "attn.v_proj",
+    "attn.proj",
+)
+
+
 CLIP_BIGG_LORA_SPEC = LoraBackboneSpec(
     repo_id="laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
-    local_dir=f"{HF_BACKBONE_ROOT}/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+    local_dir=f"{HF_BACKBONE_ROOT}/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
     loader_backend="transformers_clip",
     architecture_name=None,
     preprocess=TransformConfig(
@@ -61,7 +70,7 @@ CLIP_BIGG_LORA_SPEC = LoraBackboneSpec(
 
 EVA_GIANT_LORA_SPEC = LoraBackboneSpec(
     repo_id="timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
-    local_dir=f"{HF_BACKBONE_ROOT}/eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    local_dir=f"{HF_BACKBONE_ROOT}/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
     loader_backend="timm",
     architecture_name="eva_giant_patch14_336.m30m_ft_in22k_in1k",
     preprocess=TransformConfig(
@@ -70,16 +79,37 @@ EVA_GIANT_LORA_SPEC = LoraBackboneSpec(
         mean=(0.48145466, 0.4578275, 0.40821073),
         std=(0.26862954, 0.26130258, 0.27577711),
     ),
-    default_lora_targets=(
-        "attn.qkv",
-        "attn.proj",
-    ),
+    default_lora_targets=TIMM_VIT_LORA_TARGETS,
 )
+
+EVA02_LARGE_LORA_SPEC = LoraBackboneSpec(
+    repo_id="timm/eva02_large_patch14_448.mim_m38m_ft_in22k_in1k",
+    local_dir=f"{HF_BACKBONE_ROOT}/timm/eva02_large_patch14_448.mim_m38m_ft_in22k_in1k",
+    loader_backend="timm",
+    architecture_name="eva02_large_patch14_448.mim_m38m_ft_in22k_in1k",
+    preprocess=TransformConfig(
+        resize_size=448,
+        crop_size=448,
+        mean=(0.48145466, 0.4578275, 0.40821073),
+        std=(0.26862954, 0.26130258, 0.27577711),
+    ),
+    default_lora_targets=TIMM_VIT_LORA_TARGETS,
+)
+
+LEGACY_LORA_MODEL_FAMILY_ALIASES = {
+    "vit_large_lora": "eva02_large_lora",
+}
+
+
+def normalize_lora_model_family(model_family: str) -> str:
+    return LEGACY_LORA_MODEL_FAMILY_ALIASES.get(model_family, model_family)
+
 
 LORA_BACKBONE_SPECS = {
     "clip_lora": CLIP_BIGG_LORA_SPEC,
     "eva_giant_lora": EVA_GIANT_LORA_SPEC,
-    "vit_large_lora": EVA_GIANT_LORA_SPEC,
+    "eva02_large_lora": EVA02_LARGE_LORA_SPEC,
+    "vit_large_lora": EVA02_LARGE_LORA_SPEC,
 }
 
 
@@ -221,6 +251,7 @@ def resolve_preprocess_config(
     resize_override: int | None = None,
     crop_override: int | None = None,
 ) -> TransformConfig:
+    model_family = normalize_lora_model_family(model_family)
     fallback = DEFAULT_PREPROCESS[model_family if model_family in DEFAULT_PREPROCESS else "dinov3"]
     local_repo_config = _resolve_preprocess_from_local_repo(backbone_path, fallback)
     if local_repo_config is not None:
@@ -373,6 +404,7 @@ class LoraVisionBinaryClassifier(nn.Module):
         lora_targets: Sequence[str] | None = None,
     ):
         super().__init__()
+        model_family = normalize_lora_model_family(model_family)
         if model_family not in LORA_BACKBONE_SPECS:
             raise ValueError(f"Unsupported model_family: {model_family}")
 
@@ -422,15 +454,15 @@ class LoraVisionBinaryClassifier(nn.Module):
         self.to(device)
 
     def _load_backbone(self, model_family: str, backbone_path: str, local_files_only: bool) -> nn.Module:
-        if model_family == "clip_lora":
+        if self.loader_backend == "transformers_clip":
             _require_dependency(CLIPVisionModel, "transformers", "CLIP LoRA backbones")
             return CLIPVisionModel.from_pretrained(
                 backbone_path,
                 local_files_only=local_files_only,
             )
 
-        if model_family == "vit_large_lora":
-            _require_dependency(timm, "timm", "EVA LoRA backbones")
+        if self.loader_backend == "timm":
+            _require_dependency(timm, "timm", "timm-based LoRA backbones")
             backbone_dir = Path(backbone_path)
             if backbone_dir.exists():
                 checkpoint_path = _find_first_existing_file(
@@ -443,18 +475,17 @@ class LoraVisionBinaryClassifier(nn.Module):
                     )
                 return timm.create_model(
                     self.backbone_architecture,
-                    pretrained=True,
+                    pretrained=False,
                     num_classes=0,
                     checkpoint_path=str(checkpoint_path),
-                    # strict=False
                 )
 
             if _looks_like_filesystem_path(backbone_path):
                 raise FileNotFoundError(f"Backbone path does not exist: {backbone_path}")
             if local_files_only:
                 raise FileNotFoundError(
-                    "local_files_only=True but the EVA backbone directory was not found locally. "
-                    f"Expected something like: {DEFAULT_LORA_BACKBONES[model_family]}"
+                    "local_files_only=True but the timm backbone directory was not found locally. "
+                    f"Expected something like: {DEFAULT_LORA_BACKBONES[self.model_family]}"
                 )
 
             resolved_name = backbone_path
@@ -462,7 +493,7 @@ class LoraVisionBinaryClassifier(nn.Module):
                 resolved_name = f"hf-hub:{backbone_path}"
             return timm.create_model(resolved_name, pretrained=True, num_classes=0)
 
-        raise ValueError(f"Unsupported model_family: {model_family}")
+        raise ValueError(f"Unsupported loader backend: {self.loader_backend}")
 
     def _infer_hidden_size(self, backbone: nn.Module) -> int:
         hidden_size = getattr(getattr(backbone, "config", None), "hidden_size", None)
@@ -666,6 +697,13 @@ class TeacherStudentNetwork(nn.Module):
         logits = self.student_classifier(projected)
         return projected, logits
 
+    def forward(self, pixel_values: torch.Tensor, branch: str = "student"):
+        if branch == "teacher":
+            return self.forward_teacher(pixel_values)
+        if branch == "student":
+            return self.forward_student(pixel_values)
+        raise ValueError("branch must be 'teacher' or 'student'")
+
     def freeze_teacher(self) -> None:
         for param in self.teacher.parameters():
             param.requires_grad = False
@@ -673,6 +711,12 @@ class TeacherStudentNetwork(nn.Module):
     def unfreeze_teacher_head(self) -> None:
         self.teacher.unfreeze_projection()
         self.teacher.unfreeze_classifier()
+
+    def freeze_student(self) -> None:
+        for param in self.student_projection.parameters():
+            param.requires_grad = False
+        for param in self.student_classifier.parameters():
+            param.requires_grad = False
 
     def unfreeze_student(self) -> None:
         for param in self.student_projection.parameters():
@@ -795,3 +839,8 @@ def create_lora_model_from_config(config: Dict[str, object], device: str | torch
 
 def serialize_transform_config(config: TransformConfig) -> Dict[str, object]:
     return asdict(config)
+
+
+
+
+

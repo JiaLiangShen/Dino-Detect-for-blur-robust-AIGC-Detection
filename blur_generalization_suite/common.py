@@ -1,4 +1,4 @@
-import json
+﻿import json
 import logging
 import os
 import random
@@ -28,12 +28,12 @@ def setup_logging(rank: int = 0) -> None:
 
 
 def infer_backend(world_size: int) -> str:
-    if torch.cuda.is_available() and torch.cuda.device_count() >= world_size:
+    if torch.cuda.is_available():
         return "nccl"
     return "gloo"
 
 
-def setup_distributed(rank: int, world_size: int, backend: str | None = None) -> None:
+def setup_distributed(rank: int, world_size: int, local_rank: int | None = None, backend: str | None = None) -> None:
     if world_size <= 1 or dist.is_initialized():
         return
 
@@ -43,14 +43,18 @@ def setup_distributed(rank: int, world_size: int, backend: str | None = None) ->
 
     if backend == "nccl":
         os.environ.setdefault("NCCL_TIMEOUT", "1800")
-        os.environ.setdefault("TORCH_NCCL_BLOCKING_WAIT", "1")
-        os.environ.setdefault("TORCH_NCCL_ASYNC_ERROR_HANDLING", "1")
+        # NCCL_BLOCKING_WAIT and NCCL_ASYNC_ERROR_HANDLING are mutually exclusive.
+        # BLOCKING_WAIT=1 bypasses the init_process_group timeout and causes indefinite hangs.
+        # Use ASYNC_ERROR_HANDLING=1 only, so PyTorch's 30-minute timeout can fire normally.
+        os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
         os.environ.setdefault("NCCL_SOCKET_IFNAME", "^lo,docker")
         os.environ.setdefault("NCCL_IB_DISABLE", "1")
         os.environ.setdefault("NCCL_P2P_DISABLE", "1")
         if not torch.cuda.is_available():
             raise RuntimeError("NCCL backend requires CUDA, but CUDA is unavailable.")
-        torch.cuda.set_device(rank)
+        device_count = max(torch.cuda.device_count(), 1)
+        device_index = local_rank if local_rank is not None else rank % device_count
+        torch.cuda.set_device(device_index)
 
     dist.init_process_group(
         backend=backend,
@@ -172,3 +176,5 @@ def parse_distributed_env() -> Tuple[int, int, int]:
     world_size = int(os.environ.get("WORLD_SIZE", 1))
     local_rank = int(os.environ.get("LOCAL_RANK", rank))
     return rank, world_size, local_rank
+
+

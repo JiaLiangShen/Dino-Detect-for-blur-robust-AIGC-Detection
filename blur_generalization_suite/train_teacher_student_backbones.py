@@ -136,6 +136,7 @@ def train_teacher_phase(model, train_loader, optimizer, scheduler, scaler, devic
     actual_model = model.module if hasattr(model, "module") else model
     actual_model.freeze_teacher()
     actual_model.unfreeze_teacher_head()
+    actual_model.freeze_student()
 
     best_acc = 0.0
     history = {"train_loss": [], "train_acc": []}
@@ -146,6 +147,7 @@ def train_teacher_phase(model, train_loader, optimizer, scheduler, scaler, devic
         total_loss = 0.0
         total_correct = 0.0
         total_samples = 0.0
+        total_steps = 0.0
 
         for batch_idx, (images, labels, _, _) in enumerate(train_loader):
             optimizer.zero_grad(set_to_none=True)
@@ -153,7 +155,7 @@ def train_teacher_phase(model, train_loader, optimizer, scheduler, scaler, devic
             labels = labels.to(device, non_blocking=True)
 
             with autocast(enabled=device.type == "cuda"):
-                teacher_features, teacher_logits = actual_model.forward_teacher(images)
+                teacher_features, teacher_logits = model(images, branch="teacher")
                 losses = criterion(
                     student_features=teacher_features,
                     student_logits=teacher_logits,
@@ -168,6 +170,7 @@ def train_teacher_phase(model, train_loader, optimizer, scheduler, scaler, devic
             total_loss += losses["total_loss"].item()
             total_correct += (teacher_logits.argmax(dim=1) == labels).sum().item()
             total_samples += labels.size(0)
+            total_steps += 1.0
 
             if rank == 0 and (batch_idx + 1) % 10 == 0:
                 avg_loss = total_loss / (batch_idx + 1)
@@ -178,17 +181,15 @@ def train_teacher_phase(model, train_loader, optimizer, scheduler, scaler, devic
                 )
 
         if world_size > 1:
-            loss_tensor = torch.tensor(total_loss, device=device, dtype=torch.float32)
-            correct_tensor = torch.tensor(total_correct, device=device, dtype=torch.float32)
-            samples_tensor = torch.tensor(total_samples, device=device, dtype=torch.float32)
-            all_reduce_tensor(loss_tensor, world_size)
-            all_reduce_tensor(correct_tensor, world_size)
-            all_reduce_tensor(samples_tensor, world_size)
-            total_loss = loss_tensor.item()
-            total_correct = correct_tensor.item()
-            total_samples = samples_tensor.item()
+            metrics_tensor = torch.tensor(
+                [total_loss, total_correct, total_samples, total_steps],
+                device=device,
+                dtype=torch.float32,
+            )
+            all_reduce_tensor(metrics_tensor, world_size)
+            total_loss, total_correct, total_samples, total_steps = metrics_tensor.tolist()
 
-        avg_loss = total_loss / max(len(train_loader) * world_size, 1)
+        avg_loss = total_loss / max(total_steps, 1.0)
         avg_acc = 100.0 * total_correct / max(total_samples, 1.0)
         history["train_loss"].append(avg_loss)
         history["train_acc"].append(avg_acc)
@@ -235,6 +236,7 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
         losses_accum = {"total": 0.0, "cls": 0.0, "distill": 0.0, "feature": 0.0, "simclr": 0.0}
         total_correct = 0.0
         total_samples = 0.0
+        total_steps = 0.0
 
         for batch_idx, (images, labels, image_names, categories) in enumerate(train_loader):
             optimizer.zero_grad(set_to_none=True)
@@ -243,7 +245,7 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
 
             with torch.no_grad():
                 with autocast(enabled=device.type == "cuda"):
-                    teacher_features, teacher_logits = actual_model.forward_teacher(images)
+                    teacher_features, teacher_logits = model(images, branch="teacher")
 
             student_inputs = []
             for img_tensor, img_name, label, category in zip(images, image_names, labels, categories):
@@ -253,14 +255,14 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
             student_inputs = torch.stack(student_inputs)
 
             with autocast(enabled=device.type == "cuda"):
-                student_features, student_logits = actual_model.forward_student(student_inputs)
+                student_features, student_logits = model(student_inputs, branch="student")
                 student_aug = []
                 for img_tensor in student_inputs:
                     strength = torch.empty(1).uniform_(args.blur_min, args.blur_max).item()
                     aug_tensor = apply_blur_to_tensor(img_tensor.unsqueeze(0), args.blur_type, strength).squeeze(0)
                     student_aug.append(aug_tensor)
                 student_aug = torch.stack(student_aug).to(device, non_blocking=True)
-                student_features_aug, _ = actual_model.forward_student(student_aug)
+                student_features_aug, _ = model(student_aug, branch="student")
 
                 losses = criterion(
                     student_features=student_features,
@@ -283,6 +285,7 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
             losses_accum["simclr"] += losses["simclr_loss"].item()
             total_correct += (student_logits.argmax(dim=1) == labels).sum().item()
             total_samples += labels.size(0)
+            total_steps += 1.0
 
             if rank == 0 and (batch_idx + 1) % 10 == 0:
                 avg_acc = 100.0 * total_correct / max(total_samples, 1.0)
@@ -292,18 +295,33 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
                 )
 
         if world_size > 1:
-            for key, value in list(losses_accum.items()):
-                tensor = torch.tensor(value, device=device, dtype=torch.float32)
-                all_reduce_tensor(tensor, world_size)
-                losses_accum[key] = tensor.item()
-            correct_tensor = torch.tensor(total_correct, device=device, dtype=torch.float32)
-            samples_tensor = torch.tensor(total_samples, device=device, dtype=torch.float32)
-            all_reduce_tensor(correct_tensor, world_size)
-            all_reduce_tensor(samples_tensor, world_size)
-            total_correct = correct_tensor.item()
-            total_samples = samples_tensor.item()
+            metrics_tensor = torch.tensor(
+                [
+                    losses_accum["total"],
+                    losses_accum["cls"],
+                    losses_accum["distill"],
+                    losses_accum["feature"],
+                    losses_accum["simclr"],
+                    total_correct,
+                    total_samples,
+                    total_steps,
+                ],
+                device=device,
+                dtype=torch.float32,
+            )
+            all_reduce_tensor(metrics_tensor, world_size)
+            (
+                losses_accum["total"],
+                losses_accum["cls"],
+                losses_accum["distill"],
+                losses_accum["feature"],
+                losses_accum["simclr"],
+                total_correct,
+                total_samples,
+                total_steps,
+            ) = metrics_tensor.tolist()
 
-        divisor = max(len(train_loader) * world_size, 1)
+        divisor = max(total_steps, 1.0)
         for key in losses_accum:
             losses_accum[key] /= divisor
         train_acc = 100.0 * total_correct / max(total_samples, 1.0)
@@ -333,7 +351,7 @@ def train_student_phase(model, train_loader, optimizer, scheduler, scaler, devic
 
 
 def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse.Namespace) -> None:
-    setup_distributed(rank, world_size)
+    setup_distributed(rank, world_size, local_rank=local_rank)
     setup_logging(rank)
     set_seed(args.seed + rank)
 
@@ -397,6 +415,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         model,
         device_ids=[local_rank] if device.type == "cuda" else None,
         output_device=local_rank if device.type == "cuda" else None,
+        broadcast_buffers=False,
         find_unused_parameters=True,
     )
 

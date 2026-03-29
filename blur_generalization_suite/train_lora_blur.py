@@ -1,11 +1,11 @@
-import argparse
+﻿import argparse
 import sys
 import time
 from pathlib import Path
 
 import torch
 import torch.optim as optim
-from torch.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -33,6 +33,7 @@ from blur_generalization_suite.model_zoo import (
     LORA_BACKBONE_SPECS,
     FocalLoss,
     create_lora_model_from_config,
+    normalize_lora_model_family,
     resolve_preprocess_config,
     serialize_transform_config,
 )
@@ -43,7 +44,7 @@ DEFAULT_CCMBA_DATA_DIR = "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train"
 
 
 def normalize_model_family(model_family: str) -> str:
-    return "vit_large_lora" if model_family == "eva_giant_lora" else model_family
+    return normalize_lora_model_family(model_family)
 
 
 def experiment_name(args: argparse.Namespace) -> str:
@@ -77,7 +78,6 @@ def _build_epoch_metrics(total_loss: float, total_correct: float, total_samples:
 
 
 def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank, world_size):
-    actual_model = model.module if hasattr(model, "module") else model
     model.train()
     total_loss = 0.0
     total_correct = 0.0
@@ -86,6 +86,7 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
     real_total = 0.0
     fake_correct = 0.0
     fake_total = 0.0
+    total_steps = 0.0
 
     for batch_idx, (images, labels, image_names, categories) in enumerate(train_loader):
         optimizer.zero_grad(set_to_none=True)
@@ -99,8 +100,9 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
             blurred_images.append(blurred_tensor.to(device, non_blocking=True))
         blurred_images = torch.stack(blurred_images)
 
-        with autocast(device.type):
-            logits = actual_model(blurred_images)
+        with autocast(enabled=device.type == "cuda"):
+            # Keep the forward pass on the DDP wrapper so reducer hooks stay in sync.
+            logits = model(blurred_images)
             loss = criterion(logits, labels)
 
         scaler.scale(loss).backward()
@@ -118,6 +120,7 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
         real_total += real_mask.sum().item()
         fake_correct += (preds[fake_mask] == labels[fake_mask]).sum().item()
         fake_total += fake_mask.sum().item()
+        total_steps += 1.0
 
         if rank == 0 and (batch_idx + 1) % 10 == 0:
             metrics = _build_epoch_metrics(
@@ -137,29 +140,31 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
             )
 
     if world_size > 1:
-        total_loss_tensor = torch.tensor(total_loss, device=device, dtype=torch.float32)
-        total_correct_tensor = torch.tensor(total_correct, device=device, dtype=torch.float32)
-        total_samples_tensor = torch.tensor(total_samples, device=device, dtype=torch.float32)
-        real_correct_tensor = torch.tensor(real_correct, device=device, dtype=torch.float32)
-        real_total_tensor = torch.tensor(real_total, device=device, dtype=torch.float32)
-        fake_correct_tensor = torch.tensor(fake_correct, device=device, dtype=torch.float32)
-        fake_total_tensor = torch.tensor(fake_total, device=device, dtype=torch.float32)
-
-        all_reduce_tensor(total_loss_tensor, world_size)
-        all_reduce_tensor(total_correct_tensor, world_size)
-        all_reduce_tensor(total_samples_tensor, world_size)
-        all_reduce_tensor(real_correct_tensor, world_size)
-        all_reduce_tensor(real_total_tensor, world_size)
-        all_reduce_tensor(fake_correct_tensor, world_size)
-        all_reduce_tensor(fake_total_tensor, world_size)
-
-        total_loss = total_loss_tensor.item()
-        total_correct = total_correct_tensor.item()
-        total_samples = total_samples_tensor.item()
-        real_correct = real_correct_tensor.item()
-        real_total = real_total_tensor.item()
-        fake_correct = fake_correct_tensor.item()
-        fake_total = fake_total_tensor.item()
+        metrics_tensor = torch.tensor(
+            [
+                total_loss,
+                total_correct,
+                total_samples,
+                real_correct,
+                real_total,
+                fake_correct,
+                fake_total,
+                total_steps,
+            ],
+            device=device,
+            dtype=torch.float32,
+        )
+        all_reduce_tensor(metrics_tensor, world_size)
+        (
+            total_loss,
+            total_correct,
+            total_samples,
+            real_correct,
+            real_total,
+            fake_correct,
+            fake_total,
+            total_steps,
+        ) = metrics_tensor.tolist()
 
     return _build_epoch_metrics(
         total_loss=total_loss,
@@ -169,7 +174,7 @@ def train_epoch(model, train_loader, criterion, optimizer, scaler, device, rank,
         real_total=real_total,
         fake_correct=fake_correct,
         fake_total=fake_total,
-        divisor=len(train_loader) * world_size,
+        divisor=total_steps,
     )
 
 
@@ -206,7 +211,7 @@ def build_checkpoint(model, optimizer, scheduler, scaler, epoch: int, best_acc: 
 
 
 def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse.Namespace) -> None:
-    setup_distributed(rank, world_size)
+    setup_distributed(rank, world_size, local_rank=local_rank)
     setup_logging(rank)
     set_seed(args.seed + rank)
 
@@ -273,7 +278,8 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         model,
         device_ids=[local_rank] if device.type == "cuda" else None,
         output_device=local_rank if device.type == "cuda" else None,
-        find_unused_parameters=True,
+        broadcast_buffers=False,
+        find_unused_parameters=False,
     )
 
     trainable_stats = count_trainable_parameters(model.module)
@@ -295,7 +301,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
     criterion = FocalLoss(alpha=args.focal_alpha, gamma=args.focal_gamma)
     optimizer = optim.AdamW((param for param in model.parameters() if param.requires_grad), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-    scaler = GradScaler(device.type)
+    scaler = GradScaler(enabled=device.type == "cuda")
 
     output_dir = ensure_dir(Path(args.output_dir) / experiment_name(args))
     best_acc = float("-inf")
@@ -401,7 +407,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Frozen-backbone LoRA training with blur augmentation.")
-    parser.add_argument("--model-family", choices=["clip_lora", "eva_giant_lora", "vit_large_lora"], required=True)
+    parser.add_argument("--model-family", choices=["clip_lora", "eva_giant_lora", "eva02_large_lora", "vit_large_lora"], required=True)
     parser.add_argument("--backbone-path", type=str, default=None)
     parser.add_argument("--train-root", type=str, default=DEFAULT_TRAIN_ROOT)
     parser.add_argument("--ccmba-data-dir", type=str, default=DEFAULT_CCMBA_DATA_DIR)
@@ -446,3 +452,6 @@ if __name__ == "__main__":
         main_distributed(rank, local_rank, world_size, arguments)
     finally:
         cleanup_distributed()
+
+
+
