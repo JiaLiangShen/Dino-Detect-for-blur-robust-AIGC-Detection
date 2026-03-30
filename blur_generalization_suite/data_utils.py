@@ -461,16 +461,24 @@ class BinaryFolderDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int):
-        img_path, label, category = self.data[idx]
-        image = load_image_safely(img_path)
-        if image is None:
-            raise RuntimeError(f"Failed to load image: {img_path}")
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                current_idx = (idx + attempt) % len(self.data)
+                img_path, label, category = self.data[current_idx]
+                image = load_image_safely(img_path)
+                if image is None:
+                    raise RuntimeError(f"Failed to load image: {img_path}")
 
-        if self.enable_strong_aug and self.strong_transform is not None and random.random() < 0.4:
-            tensor_image = self.strong_transform(image)
-        else:
-            tensor_image = self.transform(image)
-        return tensor_image, label, img_path.stem, category
+                if self.enable_strong_aug and self.strong_transform is not None and random.random() < 0.4:
+                    tensor_image = self.strong_transform(image)
+                else:
+                    tensor_image = self.transform(image)
+                return tensor_image, label, img_path.stem, category
+            except Exception:
+                if attempt == max_retries - 1:
+                    raise RuntimeError(f"Too many consecutive corrupted images starting from index {idx}")
+        raise RuntimeError("Unexpected error in __getitem__")
 
 
 class MultiTestDataset(Dataset):

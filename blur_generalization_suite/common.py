@@ -80,7 +80,7 @@ def barrier(world_size: int) -> None:
 
 def all_reduce_tensor(tensor: torch.Tensor, world_size: int) -> torch.Tensor:
     if world_size > 1 and dist.is_initialized():
-        dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+        dist.all_reduce(tensor, op=dist.ReduceOp.SUM, async_op=False)
     return tensor
 
 

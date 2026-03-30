@@ -415,7 +415,6 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         model,
         device_ids=[local_rank] if device.type == "cuda" else None,
         output_device=local_rank if device.type == "cuda" else None,
-        broadcast_buffers=False,
         find_unused_parameters=True,
     )
 

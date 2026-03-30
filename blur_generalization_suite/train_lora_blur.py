@@ -255,6 +255,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         pin_memory=True,
         drop_last=True,
         persistent_workers=args.num_workers > 0,
+        prefetch_factor=2 if args.num_workers > 0 else None,
     )
 
     model_config = {
@@ -278,8 +279,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         model,
         device_ids=[local_rank] if device.type == "cuda" else None,
         output_device=local_rank if device.type == "cuda" else None,
-        broadcast_buffers=False,
-        find_unused_parameters=False,
+        find_unused_parameters=True,
     )
 
     trainable_stats = count_trainable_parameters(model.module)
@@ -297,6 +297,8 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         print(f"Local files only: {args.local_files_only}")
         print(f"Report checkpoint: {args.report_checkpoint}")
         print("=" * 70)
+
+    barrier(world_size)
 
     criterion = FocalLoss(alpha=args.focal_alpha, gamma=args.focal_gamma)
     optimizer = optim.AdamW((param for param in model.parameters() if param.requires_grad), lr=args.learning_rate, weight_decay=args.weight_decay)
