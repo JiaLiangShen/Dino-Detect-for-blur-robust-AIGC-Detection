@@ -46,7 +46,7 @@ def setup_distributed(rank: int, world_size: int, local_rank: int | None = None,
         # NCCL_BLOCKING_WAIT and NCCL_ASYNC_ERROR_HANDLING are mutually exclusive.
         # BLOCKING_WAIT=1 bypasses the init_process_group timeout and causes indefinite hangs.
         # Use ASYNC_ERROR_HANDLING=1 only, so PyTorch's 30-minute timeout can fire normally.
-        os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
+        os.environ.setdefault("TORCH_NCCL_ASYNC_ERROR_HANDLING", "1")
         os.environ.setdefault("NCCL_SOCKET_IFNAME", "^lo,docker")
         os.environ.setdefault("NCCL_IB_DISABLE", "1")
         os.environ.setdefault("NCCL_P2P_DISABLE", "1")

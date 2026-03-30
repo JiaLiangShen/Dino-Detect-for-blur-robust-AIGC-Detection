@@ -1,0 +1,392 @@
+{
+  "model_path": "blur_generalization_suite/outputs/teacher_student/dinov3-vith16plus-pretrain-lvd1689m_sdv14_teacher_student_blur01/best_student_model.pth",
+  "branch": "student",
+  "model_metadata": {
+    "model_family": "teacher_student_dinov3",
+    "branch": "student",
+    "backbone_name": "dinov3-vith16plus-pretrain-lvd1689m",
+    "backbone_path": "/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m",
+    "alpha_simclr": 0.3
+  },
+  "checkpoint_config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m",
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "mixed_mode_ratio": 0.5,
+    "alpha_simclr": 0.3,
+    "enable_strong_aug": true,
+    "transform_config": {
+      "resize_size": 512,
+      "crop_size": 448,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "default_eval_branch": "student",
+    "local_files_only": true
+  },
+  "eval_config": {
+    "dataset_group": "aigc_benchmark",
+    "blur_mode": "both",
+    "blur_type": "motion",
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "batch_size": 128
+  },
+  "results": {
+    "midjourney": {
+      "no_blur": {
+        "accuracy": 0.9088333333333334,
+        "precision": 0.9979699553390174,
+        "recall": 0.8193333333333334,
+        "f1_score": 0.8998718652754897,
+        "bacc": 0.9088333333333334,
+        "balanced_accuracy": 0.9088333333333334,
+        "balanced_accuracy_half_gap": 0.08949999999999997,
+        "real_accuracy": 0.9983333333333333,
+        "fake_accuracy": 0.8193333333333334,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5990,
+            10
+          ],
+          [
+            1084,
+            4916
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "midjourney",
+        "blur_mode": "no_blur",
+        "time_seconds": 404.13133430480957
+      },
+      "global": {
+        "accuracy": 0.8883333333333333,
+        "precision": 0.9673084636983554,
+        "recall": 0.8038333333333333,
+        "f1_score": 0.8780265792827234,
+        "bacc": 0.8883333333333333,
+        "balanced_accuracy": 0.8883333333333333,
+        "balanced_accuracy_half_gap": 0.08450000000000002,
+        "real_accuracy": 0.9728333333333333,
+        "fake_accuracy": 0.8038333333333333,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5837,
+            163
+          ],
+          [
+            1177,
+            4823
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "midjourney",
+        "blur_mode": "global",
+        "time_seconds": 451.88241744041443
+      }
+    },
+    "sd-xl": {
+      "no_blur": {
+        "accuracy": 0.99575,
+        "precision": 0.9984917043740573,
+        "recall": 0.993,
+        "f1_score": 0.9957382802707445,
+        "bacc": 0.99575,
+        "balanced_accuracy": 0.99575,
+        "balanced_accuracy_half_gap": 0.00275000000000003,
+        "real_accuracy": 0.9985,
+        "fake_accuracy": 0.993,
+        "real_total": 2000,
+        "fake_total": 2000,
+        "confusion_matrix": [
+          [
+            1997,
+            3
+          ],
+          [
+            14,
+            1986
+          ]
+        ],
+        "total_samples": 4000,
+        "dataset_name": "sd-xl",
+        "blur_mode": "no_blur",
+        "time_seconds": 135.17061066627502
+      },
+      "global": {
+        "accuracy": 0.938,
+        "precision": 0.9529472595656671,
+        "recall": 0.9215,
+        "f1_score": 0.9369598373157092,
+        "bacc": 0.938,
+        "balanced_accuracy": 0.938,
+        "balanced_accuracy_half_gap": 0.016500000000000015,
+        "real_accuracy": 0.9545,
+        "fake_accuracy": 0.9215,
+        "real_total": 2000,
+        "fake_total": 2000,
+        "confusion_matrix": [
+          [
+            1909,
+            91
+          ],
+          [
+            157,
+            1843
+          ]
+        ],
+        "total_samples": 4000,
+        "dataset_name": "sd-xl",
+        "blur_mode": "global",
+        "time_seconds": 151.66936111450195
+      }
+    },
+    "wukong": {
+      "no_blur": {
+        "accuracy": 0.9965,
+        "precision": 0.9984939759036144,
+        "recall": 0.9945,
+        "f1_score": 0.9964929859719439,
+        "bacc": 0.9965,
+        "balanced_accuracy": 0.9965,
+        "balanced_accuracy_half_gap": 0.0020000000000000018,
+        "real_accuracy": 0.9985,
+        "fake_accuracy": 0.9945,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5991,
+            9
+          ],
+          [
+            33,
+            5967
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "wukong",
+        "blur_mode": "no_blur",
+        "time_seconds": 402.24976873397827
+      },
+      "global": {
+        "accuracy": 0.9634166666666667,
+        "precision": 0.9753804069071637,
+        "recall": 0.9508333333333333,
+        "f1_score": 0.9629504599544265,
+        "bacc": 0.9634166666666666,
+        "balanced_accuracy": 0.9634166666666666,
+        "balanced_accuracy_half_gap": 0.012583333333333335,
+        "real_accuracy": 0.976,
+        "fake_accuracy": 0.9508333333333333,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5856,
+            144
+          ],
+          [
+            295,
+            5705
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "wukong",
+        "blur_mode": "global",
+        "time_seconds": 449.29195261001587
+      }
+    },
+    "gaugan": {
+      "no_blur": {
+        "accuracy": 0.9982,
+        "precision": 0.9982,
+        "recall": 0.9982,
+        "f1_score": 0.9982,
+        "bacc": 0.9982,
+        "balanced_accuracy": 0.9982,
+        "balanced_accuracy_half_gap": 0.0,
+        "real_accuracy": 0.9982,
+        "fake_accuracy": 0.9982,
+        "real_total": 5000,
+        "fake_total": 5000,
+        "confusion_matrix": [
+          [
+            4991,
+            9
+          ],
+          [
+            9,
+            4991
+          ]
+        ],
+        "total_samples": 10000,
+        "dataset_name": "gaugan",
+        "blur_mode": "no_blur",
+        "time_seconds": 335.0007905960083
+      },
+      "global": {
+        "accuracy": 0.9494,
+        "precision": 0.9744510135135135,
+        "recall": 0.923,
+        "f1_score": 0.9480279375513558,
+        "bacc": 0.9494,
+        "balanced_accuracy": 0.9494,
+        "balanced_accuracy_half_gap": 0.02639999999999998,
+        "real_accuracy": 0.9758,
+        "fake_accuracy": 0.923,
+        "real_total": 5000,
+        "fake_total": 5000,
+        "confusion_matrix": [
+          [
+            4879,
+            121
+          ],
+          [
+            385,
+            4615
+          ]
+        ],
+        "total_samples": 10000,
+        "dataset_name": "gaugan",
+        "blur_mode": "global",
+        "time_seconds": 375.8098645210266
+      }
+    },
+    "whichfaceisreal": {
+      "no_blur": {
+        "accuracy": 0.8135,
+        "precision": 0.750599520383693,
+        "recall": 0.939,
+        "f1_score": 0.8342958685028876,
+        "bacc": 0.8134999999999999,
+        "balanced_accuracy": 0.8134999999999999,
+        "balanced_accuracy_half_gap": 0.1255,
+        "real_accuracy": 0.688,
+        "fake_accuracy": 0.939,
+        "real_total": 1000,
+        "fake_total": 1000,
+        "confusion_matrix": [
+          [
+            688,
+            312
+          ],
+          [
+            61,
+            939
+          ]
+        ],
+        "total_samples": 2000,
+        "dataset_name": "whichfaceisreal",
+        "blur_mode": "no_blur",
+        "time_seconds": 71.34977436065674
+      },
+      "global": {
+        "accuracy": 0.728,
+        "precision": 0.7061482820976492,
+        "recall": 0.781,
+        "f1_score": 0.741690408357075,
+        "bacc": 0.728,
+        "balanced_accuracy": 0.728,
+        "balanced_accuracy_half_gap": 0.05299999999999999,
+        "real_accuracy": 0.675,
+        "fake_accuracy": 0.781,
+        "real_total": 1000,
+        "fake_total": 1000,
+        "confusion_matrix": [
+          [
+            675,
+            325
+          ],
+          [
+            219,
+            781
+          ]
+        ],
+        "total_samples": 2000,
+        "dataset_name": "whichfaceisreal",
+        "blur_mode": "global",
+        "time_seconds": 79.78611373901367
+      }
+    },
+    "glide": {
+      "no_blur": {
+        "accuracy": 0.9248333333333333,
+        "precision": 0.9980461117624072,
+        "recall": 0.8513333333333334,
+        "f1_score": 0.9188703004137435,
+        "bacc": 0.9248333333333334,
+        "balanced_accuracy": 0.9248333333333334,
+        "balanced_accuracy_half_gap": 0.07349999999999995,
+        "real_accuracy": 0.9983333333333333,
+        "fake_accuracy": 0.8513333333333334,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5990,
+            10
+          ],
+          [
+            892,
+            5108
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "glide",
+        "blur_mode": "no_blur",
+        "time_seconds": 402.72280740737915
+      },
+      "global": {
+        "accuracy": 0.7996666666666666,
+        "precision": 0.961262185736275,
+        "recall": 0.6245,
+        "f1_score": 0.7571226510406143,
+        "bacc": 0.7996666666666667,
+        "balanced_accuracy": 0.7996666666666667,
+        "balanced_accuracy_half_gap": 0.17516666666666664,
+        "real_accuracy": 0.9748333333333333,
+        "fake_accuracy": 0.6245,
+        "real_total": 6000,
+        "fake_total": 6000,
+        "confusion_matrix": [
+          [
+            5849,
+            151
+          ],
+          [
+            2253,
+            3747
+          ]
+        ],
+        "total_samples": 12000,
+        "dataset_name": "glide",
+        "blur_mode": "global",
+        "time_seconds": 450.2560131549835
+      }
+    }
+  }
+}

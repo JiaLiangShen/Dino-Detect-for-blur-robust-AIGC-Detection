@@ -307,8 +307,22 @@ class LoRALinear(nn.Module):
         nn.init.kaiming_uniform_(self.lora_down.weight, a=math.sqrt(5))
         nn.init.zeros_(self.lora_up.weight)
 
+        self.in_features = base_linear.in_features
+        self.out_features = base_linear.out_features
+
         for param in self.base.parameters():
             param.requires_grad = False
+
+    @property
+    def weight(self) -> torch.Tensor:
+        # Merged weight: base_weight + lora_delta.  Differentiable w.r.t.
+        # lora_down.weight and lora_up.weight so gradients flow correctly
+        # even when callers use F.linear(x, weight=self.xxx.weight, ...).
+        return self.base.weight + (self.lora_up.weight @ self.lora_down.weight) * self.scaling
+
+    @property
+    def bias(self) -> torch.Tensor | None:
+        return self.base.bias
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.base(x) + self.lora_up(self.lora_down(self.dropout(x))) * self.scaling
@@ -475,9 +489,9 @@ class LoraVisionBinaryClassifier(nn.Module):
                     )
                 return timm.create_model(
                     self.backbone_architecture,
-                    pretrained=False,
+                    pretrained=True,
                     num_classes=0,
-                    checkpoint_path=str(checkpoint_path),
+                    # checkpoint_path=str(checkpoint_path),
                 )
 
             if _looks_like_filesystem_path(backbone_path):

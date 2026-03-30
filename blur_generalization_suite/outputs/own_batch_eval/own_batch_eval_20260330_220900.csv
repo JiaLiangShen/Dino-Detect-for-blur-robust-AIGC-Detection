@@ -1,0 +1,4 @@
+model_name,model_type,accuracy,bacc,real_accuracy,fake_accuracy,precision,recall,f1_score,real_total,fake_total,errors,time_seconds
+CLIP_ViT-bigG_LoRA,lora,0.3399,0.5477,1.0000,0.0954,1.0000,0.0954,0.1741,1111,2999,0,174.6
+EVA02-Large_LoRA,lora,0.3516,0.5557,1.0000,0.1114,1.0000,0.1114,0.2004,1111,2999,0,192.9
+Teacher-Student_Student,teacher_student,0.6725,0.5209,0.1908,0.8510,0.7395,0.8510,0.7913,1111,2999,0,970.0

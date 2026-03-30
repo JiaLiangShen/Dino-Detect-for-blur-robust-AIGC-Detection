@@ -1,0 +1,97 @@
+{
+  "data_root": "/data/app.e0016372/11ar_datasets/test/own_benchmark",
+  "use_deblur": true,
+  "psf_length": 15,
+  "psf_angle": 0.0,
+  "snr": 30.0,
+  "batch_size": 64,
+  "results": {
+    "CLIP_ViT-bigG_LoRA": {
+      "accuracy": 0.33990267639902677,
+      "precision": 1.0,
+      "recall": 0.09536512170723574,
+      "f1_score": 0.1741248097412481,
+      "bacc": 0.5476825608536179,
+      "balanced_accuracy": 0.5476825608536179,
+      "balanced_accuracy_half_gap": 0.4523174391463821,
+      "real_accuracy": 1.0,
+      "fake_accuracy": 0.09536512170723574,
+      "real_total": 1111,
+      "fake_total": 2999,
+      "confusion_matrix": [
+        [
+          1111,
+          0
+        ],
+        [
+          2713,
+          286
+        ]
+      ],
+      "total_samples": 4110,
+      "errors": 0,
+      "time_seconds": 174.59698390960693,
+      "model_name": "CLIP_ViT-bigG_LoRA",
+      "model_path": "blur_generalization_suite/outputs/lora_train/clip_lora_CLIP-ViT-bigG-14-laion2B-39B-b160k_blur01_best/best_lora_model.pth",
+      "model_type": "lora"
+    },
+    "EVA02-Large_LoRA": {
+      "accuracy": 0.3515815085158151,
+      "precision": 1.0,
+      "recall": 0.11137045681893964,
+      "f1_score": 0.2004200420042004,
+      "bacc": 0.5556852284094698,
+      "balanced_accuracy": 0.5556852284094698,
+      "balanced_accuracy_half_gap": 0.4443147715905302,
+      "real_accuracy": 1.0,
+      "fake_accuracy": 0.11137045681893964,
+      "real_total": 1111,
+      "fake_total": 2999,
+      "confusion_matrix": [
+        [
+          1111,
+          0
+        ],
+        [
+          2665,
+          334
+        ]
+      ],
+      "total_samples": 4110,
+      "errors": 0,
+      "time_seconds": 192.93196415901184,
+      "model_name": "EVA02-Large_LoRA",
+      "model_path": "blur_generalization_suite/outputs/lora_train/eva_giant_lora_eva_giant_patch14_336.m30m_ft_in22k_in1k_blur01/best_lora_model.pth",
+      "model_type": "lora"
+    },
+    "Teacher-Student_Student": {
+      "accuracy": 0.6725060827250608,
+      "precision": 0.7394957983193278,
+      "recall": 0.8509503167722574,
+      "f1_score": 0.7913178294573643,
+      "bacc": 0.5208846993402241,
+      "balanced_accuracy": 0.5208846993402241,
+      "balanced_accuracy_half_gap": 0.3300656174320333,
+      "real_accuracy": 0.19081908190819083,
+      "fake_accuracy": 0.8509503167722574,
+      "real_total": 1111,
+      "fake_total": 2999,
+      "confusion_matrix": [
+        [
+          212,
+          899
+        ],
+        [
+          447,
+          2552
+        ]
+      ],
+      "total_samples": 4110,
+      "errors": 0,
+      "time_seconds": 969.9961440563202,
+      "model_name": "Teacher-Student_Student",
+      "model_path": "teacher_mixed_blur_training/dinov3-vit7b16-pretrain-lvd1689m_blur01/best_teacher_blur_model.pth",
+      "model_type": "teacher_student"
+    }
+  }
+}

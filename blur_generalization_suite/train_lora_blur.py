@@ -421,7 +421,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mixed-mode-ratio", type=float, default=0.5)
     parser.add_argument("--resize-size", type=int, default=None)
     parser.add_argument("--crop-size", type=int, default=None)
-    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=1e-4)

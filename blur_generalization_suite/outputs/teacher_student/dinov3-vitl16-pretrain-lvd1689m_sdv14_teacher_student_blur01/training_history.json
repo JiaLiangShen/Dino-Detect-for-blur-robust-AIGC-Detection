@@ -1,0 +1,79 @@
+{
+  "teacher_history": {
+    "train_loss": [
+      0.04786376836823254,
+      0.009860060563901575
+    ],
+    "train_acc": [
+      98.05015005716463,
+      99.66415777439025
+    ]
+  },
+  "student_history": {
+    "train_total_loss": [
+      0.4445392329518388,
+      0.33770228595268437,
+      0.31253154103348896
+    ],
+    "train_cls_loss": [
+      0.046834881712750694,
+      0.01633661258511427,
+      0.012228161823458789
+    ],
+    "train_distill_loss": [
+      0.0016031472421273953,
+      0.0007987513047892873,
+      0.0006808713532802536
+    ],
+    "train_feature_loss": [
+      0.7682253209556021,
+      0.6105248986220941,
+      0.5695381164550781
+    ],
+    "train_simclr_loss": [
+      0.039961803250196506,
+      0.051014929282956006,
+      0.049511508243839916
+    ],
+    "train_acc": [
+      98.20407774390245,
+      99.4164443597561,
+      99.56858565167683
+    ]
+  },
+  "teacher_best_acc": 99.66415777439025,
+  "student_best_acc": 99.56858565167683,
+  "config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m",
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "mixed_mode_ratio": 0.5,
+    "alpha_simclr": 0.3,
+    "enable_strong_aug": true,
+    "transform_config": {
+      "resize_size": 512,
+      "crop_size": 448,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "default_eval_branch": "student",
+    "local_files_only": true
+  }
+}

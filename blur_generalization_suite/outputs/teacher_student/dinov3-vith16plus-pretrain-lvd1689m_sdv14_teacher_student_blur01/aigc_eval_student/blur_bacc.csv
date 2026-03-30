@@ -1,0 +1,7 @@
+branch,backbone_name,dataset,bacc
+student,dinov3-vith16plus-pretrain-lvd1689m,midjourney,0.8883333333333333
+student,dinov3-vith16plus-pretrain-lvd1689m,sd-xl,0.938
+student,dinov3-vith16plus-pretrain-lvd1689m,wukong,0.9634166666666666
+student,dinov3-vith16plus-pretrain-lvd1689m,gaugan,0.9494
+student,dinov3-vith16plus-pretrain-lvd1689m,whichfaceisreal,0.728
+student,dinov3-vith16plus-pretrain-lvd1689m,glide,0.7996666666666667
