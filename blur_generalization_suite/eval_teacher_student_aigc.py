@@ -34,6 +34,7 @@ def load_teacher_student_model(model_path: str, branch: str, device: torch.devic
         projection_dim=int(config.get("projection_dim", 512)),
         local_files_only=bool(config.get("local_files_only", True)),
         device=device,
+        backbone_family=str(config.get("backbone_family", "dinov3")),
     )
     missing, unexpected = network.load_state_dict(state_dict, strict=False)
     wrapper = TeacherStudentEvalWrapper(network, branch=branch)
@@ -67,8 +68,11 @@ def evaluate_model(model, test_loader, device, blur_mode: str):
 
 def build_model_metadata(config: dict, branch: str) -> dict:
     backbone_path = config.get("dinov3_model_id", "")
+    backbone_family = str(config.get("backbone_family", "dinov3"))
     return {
-        "model_family": "teacher_student_dinov3",
+        "model_family": f"teacher_student_{backbone_family}",
+        "backbone_family": backbone_family,
+        "backbone_preset": config.get("backbone_preset"),
         "branch": branch,
         "backbone_name": Path(backbone_path).name,
         "backbone_path": backbone_path,

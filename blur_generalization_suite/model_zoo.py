@@ -113,12 +113,6 @@ LORA_BACKBONE_SPECS = {
 }
 
 
-DEFAULT_DINOV3_MODELS = {
-    "dinov3_vit7b": "/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m",
-    "dinov3_vitl300m": "/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m",
-    "dinov3_vith840m": "/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m",
-}
-
 DEFAULT_LORA_BACKBONES = {
     model_family: spec.local_dir for model_family, spec in LORA_BACKBONE_SPECS.items()
 }
@@ -136,6 +130,116 @@ DEFAULT_PREPROCESS["dinov3"] = TransformConfig(
     mean=(0.485, 0.456, 0.406),
     std=(0.229, 0.224, 0.225),
 )
+DEFAULT_PREPROCESS["siglip2"] = TransformConfig(
+    resize_size=256,
+    crop_size=256,
+    mean=(0.5, 0.5, 0.5),
+    std=(0.5, 0.5, 0.5),
+)
+DEFAULT_PREPROCESS["aimv2"] = TransformConfig(
+    resize_size=224,
+    crop_size=224,
+    mean=(0.48145466, 0.4578275, 0.40821073),
+    std=(0.26862954, 0.26130258, 0.27577711),
+)
+DEFAULT_PREPROCESS["clip"] = TransformConfig(
+    resize_size=224,
+    crop_size=224,
+    mean=(0.48145466, 0.4578275, 0.40821073),
+    std=(0.26862954, 0.26130258, 0.27577711),
+)
+
+
+@dataclass(frozen=True)
+class DistillationBackboneSpec:
+    local_dir: str
+    backbone_family: str
+    preprocess: TransformConfig
+    description: str
+
+
+DISTILLATION_BACKBONE_SPECS: Dict[str, "DistillationBackboneSpec"] = {
+    "dinov3_vit7b": DistillationBackboneSpec(
+        local_dir="/nas_train/app.e0016372/models/dinov3-vit7b16-pretrain-lvd1689m",
+        backbone_family="dinov3",
+        preprocess=DEFAULT_PREPROCESS["dinov3"],
+        description="DINOv3 ViT-7B (Meta, 2024) - extra-large DINO backbone.",
+    ),
+    "dinov3_vitl300m": DistillationBackboneSpec(
+        local_dir="/nas_train/app.e0016372/models/dinov3-vitl16-pretrain-lvd1689m",
+        backbone_family="dinov3",
+        preprocess=DEFAULT_PREPROCESS["dinov3"],
+        description="DINOv3 ViT-Large/16 (~300M, Meta, 2024).",
+    ),
+    "dinov3_vith840m": DistillationBackboneSpec(
+        local_dir="/nas_train/app.e0016372/models/dinov3-vith16plus-pretrain-lvd1689m",
+        backbone_family="dinov3",
+        preprocess=DEFAULT_PREPROCESS["dinov3"],
+        description="DINOv3 ViT-H+/16 (~840M, Meta, 2024).",
+    ),
+    # --- 2025 CLIP/ViT distillation backbones ---
+    # 300M tier (aligned with DINOv3 ViT-L/300M)
+    "siglip2_vitl300m": DistillationBackboneSpec(
+        local_dir=f"{HF_BACKBONE_ROOT}/google/siglip2-large-patch16-256",
+        backbone_family="siglip2",
+        preprocess=TransformConfig(
+            resize_size=256,
+            crop_size=256,
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
+        ),
+        description="SigLIP 2 Large/16@256 (~303M vision, Google, 2025-02).",
+    ),
+    "aimv2_vitl300m": DistillationBackboneSpec(
+        local_dir=f"{HF_BACKBONE_ROOT}/apple/aimv2-large-patch14-224",
+        backbone_family="aimv2",
+        preprocess=TransformConfig(
+            resize_size=224,
+            crop_size=224,
+            mean=(0.48145466, 0.4578275, 0.40821073),
+            std=(0.26862954, 0.26130258, 0.27577711),
+        ),
+        description="AIMv2 Large/14@224 (~308M, Apple, 2024-11).",
+    ),
+    # ~840M tier (bracketing DINOv3 ViT-H+/840M from below and above)
+    "aimv2_vith680m": DistillationBackboneSpec(
+        local_dir=f"{HF_BACKBONE_ROOT}/apple/aimv2-huge-patch14-336",
+        backbone_family="aimv2",
+        preprocess=TransformConfig(
+            resize_size=336,
+            crop_size=336,
+            mean=(0.48145466, 0.4578275, 0.40821073),
+            std=(0.26862954, 0.26130258, 0.27577711),
+        ),
+        description="AIMv2 Huge/14@336 (~682M, Apple, 2024-11) - closest ViT below DINOv3 840M.",
+    ),
+    "siglip2_giantopt_1b": DistillationBackboneSpec(
+        local_dir=f"{HF_BACKBONE_ROOT}/google/siglip2-giant-opt-patch16-256",
+        backbone_family="siglip2",
+        preprocess=TransformConfig(
+            resize_size=256,
+            crop_size=256,
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
+        ),
+        description="SigLIP 2 Giant-OPT/16@256 (~1.1B vision, Google, 2025-02) - closest CLIP above 840M.",
+    ),
+}
+
+
+DEFAULT_DISTILLATION_BACKBONES: Dict[str, str] = {
+    name: spec.local_dir for name, spec in DISTILLATION_BACKBONE_SPECS.items()
+}
+
+
+DEFAULT_DINOV3_MODELS: Dict[str, str] = {
+    name: spec.local_dir
+    for name, spec in DISTILLATION_BACKBONE_SPECS.items()
+    if spec.backbone_family == "dinov3"
+}
+
+
+SUPPORTED_BACKBONE_FAMILIES = ("dinov3", "siglip2", "aimv2", "clip")
 
 
 def _require_dependency(module: Any, package_name: str, use_case: str) -> None:
@@ -489,9 +593,9 @@ class LoraVisionBinaryClassifier(nn.Module):
                     )
                 return timm.create_model(
                     self.backbone_architecture,
-                    pretrained=True,
+                    pretrained=False,
                     num_classes=0,
-                    # checkpoint_path=str(checkpoint_path),
+                    checkpoint_path=str(checkpoint_path),
                 )
 
             if _looks_like_filesystem_path(backbone_path):
@@ -570,6 +674,51 @@ class LoraVisionBinaryClassifier(nn.Module):
         return logits
 
 
+def _load_distillation_backbone(
+    model_path: str,
+    backbone_family: str,
+    local_files_only: bool,
+) -> nn.Module:
+    """Load just the vision tower for a distillation backbone.
+
+    Supports ``dinov3`` / ``aimv2`` (vision-only, via AutoModel w/ trust_remote_code),
+    ``siglip2`` (AutoModel returns the full Siglip2Model -> extract ``vision_model``),
+    and ``clip`` (dedicated CLIPVisionModel loader).
+    """
+    if backbone_family == "clip":
+        _require_dependency(CLIPVisionModel, "transformers", "CLIP vision backbones")
+        return CLIPVisionModel.from_pretrained(model_path, local_files_only=local_files_only)
+
+    _require_dependency(AutoModel, "transformers", "vision backbones")
+    full_model = AutoModel.from_pretrained(
+        model_path,
+        trust_remote_code=True,
+        local_files_only=local_files_only,
+        torch_dtype=torch.float32,
+        device_map=None,
+        low_cpu_mem_usage=True,
+    )
+    # Siglip2Model / CLIPModel expose a ``vision_model`` submodule; DINOv3 and AIMv2
+    # are vision-only and come back as the vision encoder directly.
+    return getattr(full_model, "vision_model", full_model)
+
+
+def _extract_backbone_features(
+    backbone: nn.Module,
+    pixel_values: torch.Tensor,
+    backbone_family: str,
+) -> torch.Tensor:
+    outputs = backbone(pixel_values=pixel_values, return_dict=True)
+    pooler = getattr(outputs, "pooler_output", None)
+    if pooler is not None:
+        return pooler.float()
+    # AIMv2 pretrained encoder uses average pooling of patch tokens (no CLS).
+    if backbone_family == "aimv2":
+        return outputs.last_hidden_state.mean(dim=1).float()
+    # DINOv3 / SigLIP 2 / CLIP all use the first token as the global feature.
+    return outputs.last_hidden_state[:, 0].float()
+
+
 class ImprovedDinoV3Adapter(nn.Module):
     def __init__(
         self,
@@ -580,19 +729,34 @@ class ImprovedDinoV3Adapter(nn.Module):
         dropout_rate: float = 0.1,
         local_files_only: bool = True,
         device: str | torch.device = "cuda",
+        backbone_family: str = "dinov3",
     ):
         super().__init__()
-        _require_dependency(AutoModel, "transformers", "DINOv3 backbones")
+        if backbone_family not in SUPPORTED_BACKBONE_FAMILIES:
+            raise ValueError(
+                f"Unsupported backbone_family: {backbone_family}. "
+                f"Expected one of {SUPPORTED_BACKBONE_FAMILIES}."
+            )
         self.model_path = model_path
-        self.backbone = AutoModel.from_pretrained(
-            model_path,
-            trust_remote_code=True,
+        self.backbone_family = backbone_family
+        self.backbone = _load_distillation_backbone(
+            model_path=model_path,
+            backbone_family=backbone_family,
             local_files_only=local_files_only,
-            torch_dtype=torch.float32,
-            device_map=None,
-            low_cpu_mem_usage=True,
         )
-        self.hidden_size = getattr(self.backbone.config, "hidden_size", 4096)
+        self.hidden_size = getattr(getattr(self.backbone, "config", None), "hidden_size", None)
+        if self.hidden_size is None:
+            # Fallbacks for encoders whose config spells hidden size differently.
+            for attr_name in ("embed_dim", "num_features", "projection_dim"):
+                value = getattr(self.backbone, attr_name, None)
+                if value is not None:
+                    self.hidden_size = int(value)
+                    break
+        if self.hidden_size is None:
+            raise ValueError(
+                f"Could not infer hidden_size for backbone_family={backbone_family} at {model_path}"
+            )
+        self.hidden_size = int(self.hidden_size)
         for param in self.backbone.parameters():
             param.requires_grad = False
 
@@ -631,12 +795,9 @@ class ImprovedDinoV3Adapter(nn.Module):
 
     def extract_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            outputs = self.backbone(pixel_values=pixel_values, return_dict=True)
-            if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-                features = outputs.pooler_output
-            else:
-                features = outputs.last_hidden_state[:, 0]
-            return features.float()
+            return _extract_backbone_features(
+                self.backbone, pixel_values, self.backbone_family
+            )
 
     def forward(self, pixel_values: torch.Tensor, return_features: bool = False):
         raw_features = self.extract_features(pixel_values)
@@ -673,8 +834,10 @@ class TeacherStudentNetwork(nn.Module):
         teacher_dropout: float = 0.1,
         local_files_only: bool = True,
         device: str | torch.device = "cuda",
+        backbone_family: str = "dinov3",
     ):
         super().__init__()
+        self.backbone_family = backbone_family
         self.teacher = ImprovedDinoV3Adapter(
             model_path=dinov3_model_path,
             num_classes=num_classes,
@@ -683,6 +846,7 @@ class TeacherStudentNetwork(nn.Module):
             dropout_rate=teacher_dropout,
             local_files_only=local_files_only,
             device=device,
+            backbone_family=backbone_family,
         )
         self.student_projection = nn.Sequential(
             nn.Linear(self.teacher.hidden_size, projection_dim * 2),

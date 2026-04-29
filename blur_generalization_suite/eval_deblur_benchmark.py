@@ -59,12 +59,14 @@ def load_lora_model(model_path: str, device: torch.device):
 def load_teacher_student_model(model_path: str, branch: str, device: torch.device):
     checkpoint, state_dict = load_checkpoint_state(model_path, map_location="cpu")
     config = checkpoint.get("config", {})
+    backbone_family = str(config.get("backbone_family", "dinov3"))
     network = TeacherStudentNetwork(
         dinov3_model_path=config["dinov3_model_id"],
         num_classes=2,
         projection_dim=int(config.get("projection_dim", 512)),
         local_files_only=bool(config.get("local_files_only", True)),
         device=device,
+        backbone_family=backbone_family,
     )
     missing, unexpected = network.load_state_dict(state_dict, strict=False)
     model = TeacherStudentEvalWrapper(network, branch=branch)
@@ -76,8 +78,10 @@ def load_teacher_student_model(model_path: str, branch: str, device: torch.devic
         std=tuple(transform_dict["std"]),
     )
     metadata = {
-        "model_name": f"dinov3_{branch}",
+        "model_name": f"{backbone_family}_{branch}",
         "model_type": "teacher_student",
+        "backbone_family": backbone_family,
+        "backbone_preset": config.get("backbone_preset"),
         "backbone_name": Path(config.get("dinov3_model_id", "")).name,
         "branch": branch,
     }

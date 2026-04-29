@@ -178,6 +178,7 @@ def load_teacher_student_model(model_path: str, device: torch.device):
         projection_dim=int(config.get("projection_dim", 512)),
         local_files_only=bool(config.get("local_files_only", True)),
         device=device,
+        backbone_family=str(config.get("backbone_family", "dinov3")),
     )
     missing, unexpected = network.load_state_dict(state_dict, strict=False)
     wrapper = TeacherStudentEvalWrapper(network, branch="student")

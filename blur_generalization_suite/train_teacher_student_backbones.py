@@ -34,8 +34,9 @@ from blur_generalization_suite.data_utils import (
     build_train_transform,
 )
 from blur_generalization_suite.model_zoo import (
-    DEFAULT_DINOV3_MODELS,
+    DEFAULT_DISTILLATION_BACKBONES,
     DEFAULT_PREPROCESS,
+    DISTILLATION_BACKBONE_SPECS,
     ImprovedTeacherStudentLoss,
     TeacherStudentNetwork,
 )
@@ -66,8 +67,35 @@ def resolve_data_paths(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
+def resolve_backbone_preset(args: argparse.Namespace) -> argparse.Namespace:
+    """Fill in dinov3_model_id / backbone_family from the preset spec if unset."""
+    preset = args.backbone_preset
+    spec = DISTILLATION_BACKBONE_SPECS.get(preset)
+    if spec is None:
+        if args.dinov3_model_id is None:
+            raise ValueError(
+                f"Unknown backbone preset: {preset}. "
+                f"Pass --dinov3-model-id explicitly or pick one of {list(DISTILLATION_BACKBONE_SPECS)}."
+            )
+        # Custom path + unknown preset -> assume DINOv3 family by default.
+        if args.backbone_family is None:
+            args.backbone_family = "dinov3"
+        return args
+
+    if args.dinov3_model_id is None:
+        args.dinov3_model_id = spec.local_dir
+    if args.backbone_family is None:
+        args.backbone_family = spec.backbone_family
+    return args
+
+
 def build_dino_transforms(args: argparse.Namespace):
-    default_config = DEFAULT_PREPROCESS["dinov3"]
+    family = args.backbone_family or "dinov3"
+    preset_spec = DISTILLATION_BACKBONE_SPECS.get(args.backbone_preset)
+    if preset_spec is not None and preset_spec.backbone_family == family:
+        default_config = preset_spec.preprocess
+    else:
+        default_config = DEFAULT_PREPROCESS.get(family, DEFAULT_PREPROCESS["dinov3"])
     transform_config = TransformConfig(
         resize_size=args.resize_size or default_config.resize_size,
         crop_size=args.crop_size or default_config.crop_size,
@@ -86,6 +114,8 @@ def experiment_name(args: argparse.Namespace) -> str:
 def build_common_config(args: argparse.Namespace, transform_config: TransformConfig) -> dict:
     return {
         "dinov3_model_id": args.dinov3_model_id,
+        "backbone_family": args.backbone_family,
+        "backbone_preset": args.backbone_preset,
         "projection_dim": args.projection_dim,
         "data_preset": args.data_preset,
         "train_root": args.train_root,
@@ -410,6 +440,7 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         projection_dim=args.projection_dim,
         local_files_only=args.local_files_only,
         device=device,
+        backbone_family=args.backbone_family,
     )
     model = DDP(
         model,
@@ -422,7 +453,9 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         stats = count_trainable_parameters(model.module)
         print("=" * 70)
         print("TEACHER-STUDENT BACKBONE SWEEP")
-        print(f"Backbone: {args.dinov3_model_id}")
+        print(f"Backbone preset: {args.backbone_preset}")
+        print(f"Backbone family: {args.backbone_family}")
+        print(f"Backbone path: {args.dinov3_model_id}")
         print(f"Data preset: {args.data_preset}")
         print(f"Train root: {args.train_root}")
         print(f"CCMBA data dir: {args.ccmba_data_dir}")
@@ -495,9 +528,36 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Teacher-student DINOv3 backbone sweep for SDV1.4.")
-    parser.add_argument("--backbone-preset", choices=list(DEFAULT_DINOV3_MODELS.keys()), default="dinov3_vitl300m")
-    parser.add_argument("--dinov3-model-id", type=str, default=None)
+    parser = argparse.ArgumentParser(
+        description=(
+            "Teacher-student distillation backbone sweep. "
+            "Supports DINOv3 as well as 2025-era CLIP/ViT backbones "
+            "(SigLIP 2, AIMv2) at ~300M and ~840M scale for apples-to-apples comparisons."
+        )
+    )
+    parser.add_argument(
+        "--backbone-preset",
+        choices=list(DEFAULT_DISTILLATION_BACKBONES.keys()),
+        default="dinov3_vitl300m",
+        help=(
+            "Named backbone preset. Includes DINOv3 variants plus the 2025 CLIP/ViT "
+            "comparison set: siglip2_vitl300m, aimv2_vitl300m (300M tier); "
+            "aimv2_vith680m, siglip2_giantopt_1b (~840M tier)."
+        ),
+    )
+    parser.add_argument(
+        "--dinov3-model-id",
+        type=str,
+        default=None,
+        help="Override the backbone checkpoint path (otherwise resolved from --backbone-preset).",
+    )
+    parser.add_argument(
+        "--backbone-family",
+        type=str,
+        default=None,
+        choices=("dinov3", "siglip2", "aimv2", "clip"),
+        help="Override the backbone family. Defaults to the preset's family.",
+    )
     parser.add_argument("--data-preset", choices=list(DATA_PRESETS.keys()), default="original_motion")
     parser.add_argument("--train-root", type=str, default=None)
     parser.add_argument("--ccmba-data-dir", type=str, default=None)
@@ -509,8 +569,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mixed-mode-ratio", type=float, default=0.5)
     parser.add_argument("--resize-size", type=int, default=None)
     parser.add_argument("--crop-size", type=int, default=None)
-    parser.add_argument("--teacher-epochs", type=int, default=2)
-    parser.add_argument("--student-epochs", type=int, default=3)
+    parser.add_argument("--teacher-epochs", type=int, default=8)
+    parser.add_argument("--student-epochs", type=int, default=15)
     parser.add_argument("--teacher-batch-size", type=int, default=64)
     parser.add_argument("--student-batch-size", type=int, default=32)
     parser.add_argument("--teacher-learning-rate", type=float, default=1e-4)
@@ -525,8 +585,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=3407)
     parser.set_defaults(local_files_only=True)
     args = parser.parse_args()
-    if args.dinov3_model_id is None:
-        args.dinov3_model_id = DEFAULT_DINOV3_MODELS[args.backbone_preset]
+    args = resolve_backbone_preset(args)
     return resolve_data_paths(args)
 
 
