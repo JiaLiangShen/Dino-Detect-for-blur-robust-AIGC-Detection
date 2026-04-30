@@ -256,7 +256,7 @@ def main():
     )
     parser.add_argument(
         '--data_root',
-        default='/home/work/shenjialiang/rebuttal/own_benchmark/own_final',
+        default='/data/app.e0016372/11ar_datasets/test/own_benchmark',
         type=str,
         help='Root folder containing real/ and fake/ sub-directories.',
     )

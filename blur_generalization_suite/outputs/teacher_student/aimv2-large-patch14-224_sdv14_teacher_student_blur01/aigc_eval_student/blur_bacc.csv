@@ -1,0 +1,8 @@
+branch,backbone_name,dataset,bacc
+student,aimv2-large-patch14-224,dalle2,0.5914739739739739
+student,aimv2-large-patch14-224,midjourney,0.6938333333333333
+student,aimv2-large-patch14-224,sd-xl,0.66225
+student,aimv2-large-patch14-224,wukong,0.8736666666666667
+student,aimv2-large-patch14-224,gaugan,0.4971
+student,aimv2-large-patch14-224,whichfaceisreal,0.614
+student,aimv2-large-patch14-224,glide,0.6843333333333333

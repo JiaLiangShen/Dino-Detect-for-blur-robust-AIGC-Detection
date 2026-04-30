@@ -1,0 +1,81 @@
+{
+  "teacher_history": {
+    "train_loss": [
+      0.07738054670938631,
+      0.024429507371855945
+    ],
+    "train_acc": [
+      96.8702362804878,
+      99.12258241234755
+    ]
+  },
+  "student_history": {
+    "train_total_loss": [
+      0.420819631436976,
+      0.2729611745694788,
+      0.2443907900554378
+    ],
+    "train_cls_loss": [
+      0.10179540587634575,
+      0.038263518635819595,
+      0.028016293921121736
+    ],
+    "train_distill_loss": [
+      0.00326583916094245,
+      0.001577006789242349,
+      0.0013734648322186818
+    ],
+    "train_feature_loss": [
+      0.6051120292849657,
+      0.43864659565251046,
+      0.4022941589355469
+    ],
+    "train_simclr_loss": [
+      0.04400782468842297,
+      0.045991193957445095,
+      0.0461798237591255
+    ],
+    "train_acc": [
+      95.8546708269817,
+      98.5619521722561,
+      98.97163205030488
+    ]
+  },
+  "teacher_best_acc": 99.12258241234755,
+  "student_best_acc": 98.97163205030488,
+  "config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/apple/aimv2-huge-patch14-336",
+    "backbone_family": "aimv2",
+    "backbone_preset": "aimv2_vith680m",
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "mixed_mode_ratio": 0.5,
+    "alpha_simclr": 0.3,
+    "enable_strong_aug": true,
+    "transform_config": {
+      "resize_size": 336,
+      "crop_size": 336,
+      "mean": [
+        0.48145466,
+        0.4578275,
+        0.40821073
+      ],
+      "std": [
+        0.26862954,
+        0.26130258,
+        0.27577711
+      ]
+    },
+    "default_eval_branch": "student",
+    "local_files_only": true
+  }
+}

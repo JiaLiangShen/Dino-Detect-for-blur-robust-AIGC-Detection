@@ -1,0 +1,8 @@
+branch,backbone_name,dataset,bacc
+student,siglip2-giant-opt-patch16-256,dalle2,0.6904739739739739
+student,siglip2-giant-opt-patch16-256,midjourney,0.7516666666666667
+student,siglip2-giant-opt-patch16-256,sd-xl,0.82025
+student,siglip2-giant-opt-patch16-256,wukong,0.93125
+student,siglip2-giant-opt-patch16-256,gaugan,0.5394
+student,siglip2-giant-opt-patch16-256,whichfaceisreal,0.5615
+student,siglip2-giant-opt-patch16-256,glide,0.7659166666666667

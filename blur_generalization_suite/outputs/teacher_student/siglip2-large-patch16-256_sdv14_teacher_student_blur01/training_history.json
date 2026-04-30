@@ -1,0 +1,81 @@
+{
+  "teacher_history": {
+    "train_loss": [
+      0.05705388580880514,
+      0.02458773589715725
+    ],
+    "train_acc": [
+      97.76998380335365,
+      99.10829125381098
+    ]
+  },
+  "student_history": {
+    "train_total_loss": [
+      0.3832109963021627,
+      0.2694564912377334,
+      0.24522672048429164
+    ],
+    "train_cls_loss": [
+      0.07389894345911538,
+      0.0395274075066171,
+      0.03247263954906929
+    ],
+    "train_distill_loss": [
+      0.00226616786747444,
+      0.001331322258565484,
+      0.001151829867101297
+    ],
+    "train_feature_loss": [
+      0.5916785263433689,
+      0.432194314351896,
+      0.3996596452666492
+    ],
+    "train_simclr_loss": [
+      0.03735545204906929,
+      0.041668662210790124,
+      0.039241380807830066
+    ],
+    "train_acc": [
+      97.04917349466463,
+      98.5500428734756,
+      98.78465605945122
+    ]
+  },
+  "teacher_best_acc": 99.10829125381098,
+  "student_best_acc": 98.78465605945122,
+  "config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/google/siglip2-large-patch16-256",
+    "backbone_family": "siglip2",
+    "backbone_preset": "siglip2_vitl300m",
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "mixed_mode_ratio": 0.5,
+    "alpha_simclr": 0.3,
+    "enable_strong_aug": true,
+    "transform_config": {
+      "resize_size": 256,
+      "crop_size": 256,
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "default_eval_branch": "student",
+    "local_files_only": true
+  }
+}

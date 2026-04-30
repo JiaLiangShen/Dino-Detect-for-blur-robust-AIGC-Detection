@@ -26,7 +26,7 @@ from .data_utils import TransformConfig
 
 HF_BACKBONE_ROOT = os.environ.get(
     "BLUR_GENERALIZATION_HF_BACKBONE_ROOT",
-    "/nas_train/app.e0016372/models/blur_generalization_hf_backbones",
+    "/nas_train/app.e0016372/models",
 )
 
 
@@ -689,6 +689,17 @@ def _load_distillation_backbone(
         _require_dependency(CLIPVisionModel, "transformers", "CLIP vision backbones")
         return CLIPVisionModel.from_pretrained(model_path, local_files_only=local_files_only)
 
+    if backbone_family == "aimv2":
+        from transformers import Aimv2VisionModel
+        return Aimv2VisionModel.from_pretrained(
+            model_path,
+            trust_remote_code=True,
+            local_files_only=local_files_only,
+            torch_dtype=torch.float32,
+            device_map=None,
+            low_cpu_mem_usage=True,
+        )
+        
     _require_dependency(AutoModel, "transformers", "vision backbones")
     full_model = AutoModel.from_pretrained(
         model_path,
