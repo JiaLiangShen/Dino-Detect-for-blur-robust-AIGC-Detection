@@ -1,0 +1,313 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 20.75it/s]
+======================================================================
+TEACHER-STUDENT AIGCBENCHMARK EVALUATION
+Model path: blur_generalization_suite/outputs/teacher_student/siglip2-giant-opt-patch16-256_sdv14_teacher_student_blur01/best_student_model.pth
+Branch: student
+Missing keys: 672 | Unexpected keys: 0
+======================================================================
+
+Testing dataset: cyclegan
+  [no_blur] Batch 10/21
+  [no_blur] Batch 20/21
+  no_blur: acc=0.7040, bacc=0.7040, f1=0.5854
+  [global] Batch 10/21
+  [global] Batch 20/21
+  global: acc=0.5761, bacc=0.5761, f1=0.3333
+
+Testing dataset: progan
+  [no_blur] Batch 10/63
+  [no_blur] Batch 20/63
+  [no_blur] Batch 30/63
+  [no_blur] Batch 40/63
+  [no_blur] Batch 50/63
+  [no_blur] Batch 60/63
+  no_blur: acc=0.9124, bacc=0.9124, f1=0.9093
+  [global] Batch 10/63
+  [global] Batch 20/63
+  [global] Batch 30/63
+  [global] Batch 40/63
+  [global] Batch 50/63
+  [global] Batch 60/63
+  global: acc=0.7214, bacc=0.7214, f1=0.6817
+
+Testing dataset: stylegan2
+  [no_blur] Batch 10/125
+  [no_blur] Batch 20/125
+  [no_blur] Batch 30/125
+  [no_blur] Batch 40/125
+  [no_blur] Batch 50/125
+  [no_blur] Batch 60/125
+  [no_blur] Batch 70/125
+  [no_blur] Batch 80/125
+  [no_blur] Batch 90/125
+  [no_blur] Batch 100/125
+  [no_blur] Batch 110/125
+  [no_blur] Batch 120/125
+  no_blur: acc=0.7884, bacc=0.7884, f1=0.7426
+  [global] Batch 10/125
+  [global] Batch 20/125
+  [global] Batch 30/125
+  [global] Batch 40/125
+  [global] Batch 50/125
+  [global] Batch 60/125
+  [global] Batch 70/125
+  [global] Batch 80/125
+  [global] Batch 90/125
+  [global] Batch 100/125
+  [global] Batch 110/125
+  [global] Batch 120/125
+  global: acc=0.6488, bacc=0.6488, f1=0.5439
+
+Testing dataset: stylegan
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.7621, bacc=0.7621, f1=0.7026
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.6717, bacc=0.6717, f1=0.5665
+
+Testing dataset: adm
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.6346, bacc=0.6346, f1=0.4264
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.5589, bacc=0.5589, f1=0.2502
+
+Testing dataset: vqdm
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.7848, bacc=0.7848, f1=0.7265
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.6112, bacc=0.6112, f1=0.3896
+
+Testing dataset: sdv14
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.9986, bacc=0.9986, f1=0.9986
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.9722, bacc=0.9723, f1=0.9722
+
+Testing dataset: sdv15
+  [no_blur] Batch 10/125
+  [no_blur] Batch 20/125
+  [no_blur] Batch 30/125
+  [no_blur] Batch 40/125
+  [no_blur] Batch 50/125
+  [no_blur] Batch 60/125
+  [no_blur] Batch 70/125
+  [no_blur] Batch 80/125
+  [no_blur] Batch 90/125
+  [no_blur] Batch 100/125
+  [no_blur] Batch 110/125
+  [no_blur] Batch 120/125
+  no_blur: acc=0.9976, bacc=0.9976, f1=0.9976
+  [global] Batch 10/125
+  [global] Batch 20/125
+  [global] Batch 30/125
+  [global] Batch 40/125
+  [global] Batch 50/125
+  [global] Batch 60/125
+  [global] Batch 70/125
+  [global] Batch 80/125
+  [global] Batch 90/125
+  [global] Batch 100/125
+  [global] Batch 110/125
+  [global] Batch 120/125
+  global: acc=0.9689, bacc=0.9689, f1=0.9688
+
+Testing dataset: stargan
+  [no_blur] Batch 10/32
+  [no_blur] Batch 20/32
+  [no_blur] Batch 30/32
+  no_blur: acc=0.7651, bacc=0.7651, f1=0.6974
+  [global] Batch 10/32
+  [global] Batch 20/32
+  [global] Batch 30/32
+  global: acc=0.5625, bacc=0.5625, f1=0.2882
+
+Testing dataset: wukong
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.9884, bacc=0.9884, f1=0.9883
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.9281, bacc=0.9281, f1=0.9248
+
+Testing dataset: dalle2
+  [no_blur] Batch 10/16
+  no_blur: acc=0.7584, bacc=0.7585, f1=0.6833
+  [global] Batch 10/16
+  global: acc=0.6873, bacc=0.6875, f1=0.5740
+
+Testing dataset: midjourney
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.8350, bacc=0.8350, f1=0.8028
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.7516, bacc=0.7516, f1=0.6810
+
+Testing dataset: biggan
+  [no_blur] Batch 10/32
+  [no_blur] Batch 20/32
+  [no_blur] Batch 30/32
+  no_blur: acc=0.7825, bacc=0.7825, f1=0.7254
+  [global] Batch 10/32
+  [global] Batch 20/32
+  [global] Batch 30/32
+  global: acc=0.6272, bacc=0.6272, f1=0.4346
+
+Testing dataset: sd-xl
+  [no_blur] Batch 10/32
+  [no_blur] Batch 20/32
+  [no_blur] Batch 30/32
+  no_blur: acc=0.9447, bacc=0.9447, f1=0.9418
+  [global] Batch 10/32
+  [global] Batch 20/32
+  [global] Batch 30/32
+  global: acc=0.8203, bacc=0.8202, f1=0.7901
+
+Testing dataset: gaugan
+  [no_blur] Batch 10/79
+  [no_blur] Batch 20/79
+  [no_blur] Batch 30/79
+  [no_blur] Batch 40/79
+  [no_blur] Batch 50/79
+  [no_blur] Batch 60/79
+  [no_blur] Batch 70/79
+  no_blur: acc=0.6686, bacc=0.6686, f1=0.5060
+  [global] Batch 10/79
+  [global] Batch 20/79
+  [global] Batch 30/79
+  [global] Batch 40/79
+  [global] Batch 50/79
+  [global] Batch 60/79
+  [global] Batch 70/79
+  global: acc=0.5367, bacc=0.5367, f1=0.1749
+
+Testing dataset: whichfaceisreal
+  [no_blur] Batch 10/16
+  no_blur: acc=0.7255, bacc=0.7255, f1=0.7635
+  [global] Batch 10/16
+  global: acc=0.5790, bacc=0.5790, f1=0.5110
+
+Testing dataset: glide
+  [no_blur] Batch 10/94
+  [no_blur] Batch 20/94
+  [no_blur] Batch 30/94
+  [no_blur] Batch 40/94
+  [no_blur] Batch 50/94
+  [no_blur] Batch 60/94
+  [no_blur] Batch 70/94
+  [no_blur] Batch 80/94
+  [no_blur] Batch 90/94
+  no_blur: acc=0.9196, bacc=0.9196, f1=0.9129
+  [global] Batch 10/94
+  [global] Batch 20/94
+  [global] Batch 30/94
+  [global] Batch 40/94
+  [global] Batch 50/94
+  [global] Batch 60/94
+  [global] Batch 70/94
+  [global] Batch 80/94
+  [global] Batch 90/94
+  global: acc=0.7670, bacc=0.7670, f1=0.7076
+
+Testing dataset: own_benchmark
+  [no_blur] Batch 10/33
+  [no_blur] Batch 20/33
+  [no_blur] Batch 30/33
+  no_blur: acc=0.9246, bacc=0.9339, f1=0.9465
+  [global] Batch 10/33
+  [global] Batch 20/33
+  [global] Batch 30/33
+  global: acc=0.7998, bacc=0.8036, f1=0.8529
+Results saved to: /nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/outputs/teacher_student/siglip2-giant-opt-patch16-256_sdv14_teacher_student_blur01/aigc_eval_student

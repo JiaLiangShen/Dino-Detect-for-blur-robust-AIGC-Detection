@@ -90,8 +90,8 @@ CROSS_DATASET_TEST_DATASETS: Dict[str, Dict[str, object]] = {
     },
     "own_benchmark": {
         "type": "simple",
-        "real_folder": "own_benchmark/0_real",
-        "fake_folder": "own_benchmark/1_fake",
+        "real_folder": "/data/app.e0016372/11ar_datasets/test/own_benchmark/0_real",
+        "fake_folder": "/data/app.e0016372/11ar_datasets/test/own_benchmark/1_fake",
     },
 }
 
