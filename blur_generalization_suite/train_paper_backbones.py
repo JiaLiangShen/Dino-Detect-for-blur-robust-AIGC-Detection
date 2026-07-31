@@ -51,10 +51,6 @@ from blur_generalization_suite.model_zoo import (
 
 
 DATA_PRESETS = {
-    "original_motion": {
-        "train_root": "/home/work/xueyunqi/11ar_datasets/extracted",
-        "ccmba_data_dir": "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train",
-    },
     "sdv14": {
         "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
         "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
@@ -994,7 +990,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--architecture-name", type=str, default=None)
     parser.add_argument("--training-profile", choices=("paper", "strict_motion"), default="paper")
     parser.add_argument("--experiment-mode", choices=("dino_detect", "classification_only"), default="dino_detect")
-    parser.add_argument("--data-preset", choices=list(DATA_PRESETS), default="original_motion")
+    parser.add_argument("--data-preset", choices=list(DATA_PRESETS), default="sdv14")
     parser.add_argument("--train-root", type=str, default=None)
     parser.add_argument("--ccmba-data-dir", type=str, default=None)
     parser.add_argument("--blur-mode", choices=("global", "ccmba", "mixed"), default="mixed")

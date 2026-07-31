@@ -43,10 +43,6 @@ from blur_generalization_suite.model_zoo import (
 
 
 DATA_PRESETS = {
-    "original_motion": {
-        "train_root": "/home/work/xueyunqi/11ar_datasets/extracted",
-        "ccmba_data_dir": "/home/work/xueyunqi/11ar_datasets/progan_ccmba_train",
-    },
     "sdv14": {
         "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
         "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
@@ -562,7 +558,7 @@ def parse_args() -> argparse.Namespace:
         choices=("dinov3", "siglip2", "aimv2", "clip"),
         help="Override the backbone family. Defaults to the preset's family.",
     )
-    parser.add_argument("--data-preset", choices=list(DATA_PRESETS.keys()), default="original_motion")
+    parser.add_argument("--data-preset", choices=list(DATA_PRESETS.keys()), default="sdv14")
     parser.add_argument("--train-root", type=str, default=None)
     parser.add_argument("--ccmba-data-dir", type=str, default=None)
     parser.add_argument("--blur-mode", choices=["global", "ccmba", "mixed"], default="mixed")

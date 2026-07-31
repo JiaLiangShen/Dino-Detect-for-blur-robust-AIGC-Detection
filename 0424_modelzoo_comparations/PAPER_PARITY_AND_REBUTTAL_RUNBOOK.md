@@ -152,7 +152,7 @@ objective is focal classification; it is not the untrained teacher branch.
 ```bash
 torchrun --nproc_per_node=8 0424_modelzoo_comparations/train_motion_only_rebuttal.py \
   --backbone-preset dinov3_vit7b \
-  --data-preset original_motion \
+  --data-preset sdv14 \
   --experiment-mode classification_only \
   --blur-prob 0.1 --blur-min 0.1 --blur-max 0.3 \
   --student-epochs 15 \
@@ -162,7 +162,7 @@ torchrun --nproc_per_node=8 0424_modelzoo_comparations/train_motion_only_rebutta
 ```
 
 ```text
-blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_classification_only_strict_motion_blur01/best_classification_only_model.pth
+blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_classification_only_strict_motion_blur01/best_classification_only_model.pth
 ```
 
 ### Motion-only DINO-Detect
@@ -170,7 +170,7 @@ blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_clas
 ```bash
 torchrun --nproc_per_node=8 0424_modelzoo_comparations/train_motion_only_rebuttal.py \
   --backbone-preset dinov3_vit7b \
-  --data-preset original_motion \
+  --data-preset sdv14 \
   --experiment-mode dino_detect \
   --blur-prob 0.1 --blur-min 0.1 --blur-max 0.3 \
   --teacher-epochs 4 --student-epochs 15 \
@@ -182,7 +182,7 @@ torchrun --nproc_per_node=8 0424_modelzoo_comparations/train_motion_only_rebutta
 ```
 
 ```text
-blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_dino_detect_strict_motion_blur01/best_student_model.pth
+blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_dino_detect_strict_motion_blur01/best_student_model.pth
 ```
 
 ## Cross-corruption evaluation
@@ -190,9 +190,9 @@ blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_dino
 ```bash
 python 0424_modelzoo_comparations/eval_motion_only_corruptions.py \
   --classification-checkpoint \
-    blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_classification_only_strict_motion_blur01/best_classification_only_model.pth \
+    blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_classification_only_strict_motion_blur01/best_classification_only_model.pth \
   --dino-detect-checkpoint \
-    blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_original_motion_dino_detect_strict_motion_blur01/best_student_model.pth \
+    blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_dino_detect_strict_motion_blur01/best_student_model.pth \
   --wildrf-root /data/app.e0016372/WildRF/test \
   --platforms reddit facebook twitter \
   --profile paper3 \

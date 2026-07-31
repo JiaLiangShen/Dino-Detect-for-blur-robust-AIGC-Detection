@@ -58,7 +58,6 @@
 你也可以通过环境变量 `BLUR_GENERALIZATION_HF_BACKBONE_ROOT` 自定义修改骨干模型根路径。
 
 ### 师生实验预设路径
-- `original_motion`：`/home/work/xueyunqi/11ar_datasets/extracted` + `/home/work/xueyunqi/11ar_datasets/progan_ccmba_train`
 - `sdv14`：`/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4` + `/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44`
 
 ### 去模糊基准数据集
