@@ -1,0 +1,17 @@
+branch,backbone_name,dataset,bacc
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,cyclegan,0.5075700227100681
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,progan,0.562125
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stylegan2,0.5483224837255883
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stylegan,0.5918043732265065
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,adm,0.5196666666666666
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,vqdm,0.5919166666666666
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sdv14,0.9652499999999999
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sdv15,0.9648749999999999
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stargan,0.5095047523761881
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,wukong,0.917
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,midjourney,0.7603333333333333
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,biggan,0.5735
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sd-xl,0.76725
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,gaugan,0.5108
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,whichfaceisreal,0.5875
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,glide,0.698

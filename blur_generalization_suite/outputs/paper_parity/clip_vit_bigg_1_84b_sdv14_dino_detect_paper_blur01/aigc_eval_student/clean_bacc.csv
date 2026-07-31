@@ -1,0 +1,17 @@
+branch,backbone_name,dataset,bacc
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,cyclegan,0.6177138531415594
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,progan,0.699125
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stylegan2,0.6797696544817227
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stylegan,0.6725922216658321
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,adm,0.5943333333333334
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,vqdm,0.71475
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sdv14,0.9904166666666667
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sdv15,0.988
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,stargan,0.6238119059529765
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,wukong,0.955
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,midjourney,0.7909999999999999
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,biggan,0.61825
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,sd-xl,0.82275
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,gaugan,0.5466
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,whichfaceisreal,0.5825
+student,CLIP-ViT-bigG-14-laion2B-39B-b160k,glide,0.7887500000000001
