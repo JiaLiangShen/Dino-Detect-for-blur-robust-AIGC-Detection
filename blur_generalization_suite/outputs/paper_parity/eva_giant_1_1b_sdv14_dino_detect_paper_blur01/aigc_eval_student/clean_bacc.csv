@@ -1,0 +1,17 @@
+branch,backbone_name,dataset,bacc
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,cyclegan,0.5613171839515518
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,progan,0.626375
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,stylegan2,0.5292313470205308
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,stylegan,0.543565348022033
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,adm,0.5719166666666666
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,vqdm,0.6748333333333333
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,sdv14,0.9676666666666667
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,sdv15,0.961125
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,stargan,0.5900450225112557
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,wukong,0.9259166666666667
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,midjourney,0.8318333333333333
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,biggan,0.631
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,sd-xl,0.8265
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,gaugan,0.591
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,whichfaceisreal,0.5549999999999999
+student,eva_giant_patch14_336.m30m_ft_in22k_in1k,glide,0.7791666666666667

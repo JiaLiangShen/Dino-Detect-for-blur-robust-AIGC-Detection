@@ -3570,3 +3570,685 @@ Testing dataset: wukong
 Skip dalle2: dataset path not available
 
 Testing dataset: midjourney
+  [no_blur] Batch 10/750
+  [no_blur] Batch 20/750
+  [no_blur] Batch 30/750
+  [no_blur] Batch 40/750
+  [no_blur] Batch 50/750
+  [no_blur] Batch 60/750
+  [no_blur] Batch 70/750
+  [no_blur] Batch 80/750
+  [no_blur] Batch 90/750
+  [no_blur] Batch 100/750
+  [no_blur] Batch 110/750
+  [no_blur] Batch 120/750
+  [no_blur] Batch 130/750
+  [no_blur] Batch 140/750
+  [no_blur] Batch 150/750
+  [no_blur] Batch 160/750
+  [no_blur] Batch 170/750
+  [no_blur] Batch 180/750
+  [no_blur] Batch 190/750
+  [no_blur] Batch 200/750
+  [no_blur] Batch 210/750
+  [no_blur] Batch 220/750
+  [no_blur] Batch 230/750
+  [no_blur] Batch 240/750
+  [no_blur] Batch 250/750
+  [no_blur] Batch 260/750
+  [no_blur] Batch 270/750
+  [no_blur] Batch 280/750
+  [no_blur] Batch 290/750
+  [no_blur] Batch 300/750
+  [no_blur] Batch 310/750
+  [no_blur] Batch 320/750
+  [no_blur] Batch 330/750
+  [no_blur] Batch 340/750
+  [no_blur] Batch 350/750
+  [no_blur] Batch 360/750
+  [no_blur] Batch 370/750
+  [no_blur] Batch 380/750
+  [no_blur] Batch 390/750
+  [no_blur] Batch 400/750
+  [no_blur] Batch 410/750
+  [no_blur] Batch 420/750
+  [no_blur] Batch 430/750
+  [no_blur] Batch 440/750
+  [no_blur] Batch 450/750
+  [no_blur] Batch 460/750
+  [no_blur] Batch 470/750
+  [no_blur] Batch 480/750
+  [no_blur] Batch 490/750
+  [no_blur] Batch 500/750
+  [no_blur] Batch 510/750
+  [no_blur] Batch 520/750
+  [no_blur] Batch 530/750
+  [no_blur] Batch 540/750
+  [no_blur] Batch 550/750
+  [no_blur] Batch 560/750
+  [no_blur] Batch 570/750
+  [no_blur] Batch 580/750
+  [no_blur] Batch 590/750
+  [no_blur] Batch 600/750
+  [no_blur] Batch 610/750
+  [no_blur] Batch 620/750
+  [no_blur] Batch 630/750
+  [no_blur] Batch 640/750
+  [no_blur] Batch 650/750
+  [no_blur] Batch 660/750
+  [no_blur] Batch 670/750
+  [no_blur] Batch 680/750
+  [no_blur] Batch 690/750
+  [no_blur] Batch 700/750
+  [no_blur] Batch 710/750
+  [no_blur] Batch 720/750
+  [no_blur] Batch 730/750
+  [no_blur] Batch 740/750
+  [no_blur] Batch 750/750
+  no_blur: acc=0.8318, bacc=0.8318, f1=0.8138
+  [global] Batch 10/750
+  [global] Batch 20/750
+  [global] Batch 30/750
+  [global] Batch 40/750
+  [global] Batch 50/750
+  [global] Batch 60/750
+  [global] Batch 70/750
+  [global] Batch 80/750
+  [global] Batch 90/750
+  [global] Batch 100/750
+  [global] Batch 110/750
+  [global] Batch 120/750
+  [global] Batch 130/750
+  [global] Batch 140/750
+  [global] Batch 150/750
+  [global] Batch 160/750
+  [global] Batch 170/750
+  [global] Batch 180/750
+  [global] Batch 190/750
+  [global] Batch 200/750
+  [global] Batch 210/750
+  [global] Batch 220/750
+  [global] Batch 230/750
+  [global] Batch 240/750
+  [global] Batch 250/750
+  [global] Batch 260/750
+  [global] Batch 270/750
+  [global] Batch 280/750
+  [global] Batch 290/750
+  [global] Batch 300/750
+  [global] Batch 310/750
+  [global] Batch 320/750
+  [global] Batch 330/750
+  [global] Batch 340/750
+  [global] Batch 350/750
+  [global] Batch 360/750
+  [global] Batch 370/750
+  [global] Batch 380/750
+  [global] Batch 390/750
+  [global] Batch 400/750
+  [global] Batch 410/750
+  [global] Batch 420/750
+  [global] Batch 430/750
+  [global] Batch 440/750
+  [global] Batch 450/750
+  [global] Batch 460/750
+  [global] Batch 470/750
+  [global] Batch 480/750
+  [global] Batch 490/750
+  [global] Batch 500/750
+  [global] Batch 510/750
+  [global] Batch 520/750
+  [global] Batch 530/750
+  [global] Batch 540/750
+  [global] Batch 550/750
+  [global] Batch 560/750
+  [global] Batch 570/750
+  [global] Batch 580/750
+  [global] Batch 590/750
+  [global] Batch 600/750
+  [global] Batch 610/750
+  [global] Batch 620/750
+  [global] Batch 630/750
+  [global] Batch 640/750
+  [global] Batch 650/750
+  [global] Batch 660/750
+  [global] Batch 670/750
+  [global] Batch 680/750
+  [global] Batch 690/750
+  [global] Batch 700/750
+  [global] Batch 710/750
+  [global] Batch 720/750
+  [global] Batch 730/750
+  [global] Batch 740/750
+  [global] Batch 750/750
+  global: acc=0.7873, bacc=0.7873, f1=0.7563
+
+Testing dataset: biggan
+  [no_blur] Batch 10/250
+  [no_blur] Batch 20/250
+  [no_blur] Batch 30/250
+  [no_blur] Batch 40/250
+  [no_blur] Batch 50/250
+  [no_blur] Batch 60/250
+  [no_blur] Batch 70/250
+  [no_blur] Batch 80/250
+  [no_blur] Batch 90/250
+  [no_blur] Batch 100/250
+  [no_blur] Batch 110/250
+  [no_blur] Batch 120/250
+  [no_blur] Batch 130/250
+  [no_blur] Batch 140/250
+  [no_blur] Batch 150/250
+  [no_blur] Batch 160/250
+  [no_blur] Batch 170/250
+  [no_blur] Batch 180/250
+  [no_blur] Batch 190/250
+  [no_blur] Batch 200/250
+  [no_blur] Batch 210/250
+  [no_blur] Batch 220/250
+  [no_blur] Batch 230/250
+  [no_blur] Batch 240/250
+  [no_blur] Batch 250/250
+  no_blur: acc=0.6310, bacc=0.6310, f1=0.4744
+  [global] Batch 10/250
+  [global] Batch 20/250
+  [global] Batch 30/250
+  [global] Batch 40/250
+  [global] Batch 50/250
+  [global] Batch 60/250
+  [global] Batch 70/250
+  [global] Batch 80/250
+  [global] Batch 90/250
+  [global] Batch 100/250
+  [global] Batch 110/250
+  [global] Batch 120/250
+  [global] Batch 130/250
+  [global] Batch 140/250
+  [global] Batch 150/250
+  [global] Batch 160/250
+  [global] Batch 170/250
+  [global] Batch 180/250
+  [global] Batch 190/250
+  [global] Batch 200/250
+  [global] Batch 210/250
+  [global] Batch 220/250
+  [global] Batch 230/250
+  [global] Batch 240/250
+  [global] Batch 250/250
+  global: acc=0.6088, bacc=0.6088, f1=0.4385
+
+Testing dataset: sd-xl
+  [no_blur] Batch 10/250
+  [no_blur] Batch 20/250
+  [no_blur] Batch 30/250
+  [no_blur] Batch 40/250
+  [no_blur] Batch 50/250
+  [no_blur] Batch 60/250
+  [no_blur] Batch 70/250
+  [no_blur] Batch 80/250
+  [no_blur] Batch 90/250
+  [no_blur] Batch 100/250
+  [no_blur] Batch 110/250
+  [no_blur] Batch 120/250
+  [no_blur] Batch 130/250
+  [no_blur] Batch 140/250
+  [no_blur] Batch 150/250
+  [no_blur] Batch 160/250
+  [no_blur] Batch 170/250
+  [no_blur] Batch 180/250
+  [no_blur] Batch 190/250
+  [no_blur] Batch 200/250
+  [no_blur] Batch 210/250
+  [no_blur] Batch 220/250
+  [no_blur] Batch 230/250
+  [no_blur] Batch 240/250
+  [no_blur] Batch 250/250
+  no_blur: acc=0.8265, bacc=0.8265, f1=0.8286
+  [global] Batch 10/250
+  [global] Batch 20/250
+  [global] Batch 30/250
+  [global] Batch 40/250
+  [global] Batch 50/250
+  [global] Batch 60/250
+  [global] Batch 70/250
+  [global] Batch 80/250
+  [global] Batch 90/250
+  [global] Batch 100/250
+  [global] Batch 110/250
+  [global] Batch 120/250
+  [global] Batch 130/250
+  [global] Batch 140/250
+  [global] Batch 150/250
+  [global] Batch 160/250
+  [global] Batch 170/250
+  [global] Batch 180/250
+  [global] Batch 190/250
+  [global] Batch 200/250
+  [global] Batch 210/250
+  [global] Batch 220/250
+  [global] Batch 230/250
+  [global] Batch 240/250
+  [global] Batch 250/250
+  global: acc=0.7685, bacc=0.7685, f1=0.7443
+
+Testing dataset: gaugan
+  [no_blur] Batch 10/625
+  [no_blur] Batch 20/625
+  [no_blur] Batch 30/625
+  [no_blur] Batch 40/625
+  [no_blur] Batch 50/625
+  [no_blur] Batch 60/625
+  [no_blur] Batch 70/625
+  [no_blur] Batch 80/625
+  [no_blur] Batch 90/625
+  [no_blur] Batch 100/625
+  [no_blur] Batch 110/625
+  [no_blur] Batch 120/625
+  [no_blur] Batch 130/625
+  [no_blur] Batch 140/625
+  [no_blur] Batch 150/625
+  [no_blur] Batch 160/625
+  [no_blur] Batch 170/625
+  [no_blur] Batch 180/625
+  [no_blur] Batch 190/625
+  [no_blur] Batch 200/625
+  [no_blur] Batch 210/625
+  [no_blur] Batch 220/625
+  [no_blur] Batch 230/625
+  [no_blur] Batch 240/625
+  [no_blur] Batch 250/625
+  [no_blur] Batch 260/625
+  [no_blur] Batch 270/625
+  [no_blur] Batch 280/625
+  [no_blur] Batch 290/625
+  [no_blur] Batch 300/625
+  [no_blur] Batch 310/625
+  [no_blur] Batch 320/625
+  [no_blur] Batch 330/625
+  [no_blur] Batch 340/625
+  [no_blur] Batch 350/625
+  [no_blur] Batch 360/625
+  [no_blur] Batch 370/625
+  [no_blur] Batch 380/625
+  [no_blur] Batch 390/625
+  [no_blur] Batch 400/625
+  [no_blur] Batch 410/625
+  [no_blur] Batch 420/625
+  [no_blur] Batch 430/625
+  [no_blur] Batch 440/625
+  [no_blur] Batch 450/625
+  [no_blur] Batch 460/625
+  [no_blur] Batch 470/625
+  [no_blur] Batch 480/625
+  [no_blur] Batch 490/625
+  [no_blur] Batch 500/625
+  [no_blur] Batch 510/625
+  [no_blur] Batch 520/625
+  [no_blur] Batch 530/625
+  [no_blur] Batch 540/625
+  [no_blur] Batch 550/625
+  [no_blur] Batch 560/625
+  [no_blur] Batch 570/625
+  [no_blur] Batch 580/625
+  [no_blur] Batch 590/625
+  [no_blur] Batch 600/625
+  [no_blur] Batch 610/625
+  [no_blur] Batch 620/625
+  no_blur: acc=0.5910, bacc=0.5910, f1=0.4709
+  [global] Batch 10/625
+  [global] Batch 20/625
+  [global] Batch 30/625
+  [global] Batch 40/625
+  [global] Batch 50/625
+  [global] Batch 60/625
+  [global] Batch 70/625
+  [global] Batch 80/625
+  [global] Batch 90/625
+  [global] Batch 100/625
+  [global] Batch 110/625
+  [global] Batch 120/625
+  [global] Batch 130/625
+  [global] Batch 140/625
+  [global] Batch 150/625
+  [global] Batch 160/625
+  [global] Batch 170/625
+  [global] Batch 180/625
+  [global] Batch 190/625
+  [global] Batch 200/625
+  [global] Batch 210/625
+  [global] Batch 220/625
+  [global] Batch 230/625
+  [global] Batch 240/625
+  [global] Batch 250/625
+  [global] Batch 260/625
+  [global] Batch 270/625
+  [global] Batch 280/625
+  [global] Batch 290/625
+  [global] Batch 300/625
+  [global] Batch 310/625
+  [global] Batch 320/625
+  [global] Batch 330/625
+  [global] Batch 340/625
+  [global] Batch 350/625
+  [global] Batch 360/625
+  [global] Batch 370/625
+  [global] Batch 380/625
+  [global] Batch 390/625
+  [global] Batch 400/625
+  [global] Batch 410/625
+  [global] Batch 420/625
+  [global] Batch 430/625
+  [global] Batch 440/625
+  [global] Batch 450/625
+  [global] Batch 460/625
+  [global] Batch 470/625
+  [global] Batch 480/625
+  [global] Batch 490/625
+  [global] Batch 500/625
+  [global] Batch 510/625
+  [global] Batch 520/625
+  [global] Batch 530/625
+  [global] Batch 540/625
+  [global] Batch 550/625
+  [global] Batch 560/625
+  [global] Batch 570/625
+  [global] Batch 580/625
+  [global] Batch 590/625
+  [global] Batch 600/625
+  [global] Batch 610/625
+  [global] Batch 620/625
+  global: acc=0.5724, bacc=0.5724, f1=0.4056
+
+Testing dataset: whichfaceisreal
+  [no_blur] Batch 10/125
+  [no_blur] Batch 20/125
+  [no_blur] Batch 30/125
+  [no_blur] Batch 40/125
+  [no_blur] Batch 50/125
+  [no_blur] Batch 60/125
+  [no_blur] Batch 70/125
+  [no_blur] Batch 80/125
+  [no_blur] Batch 90/125
+  [no_blur] Batch 100/125
+  [no_blur] Batch 110/125
+  [no_blur] Batch 120/125
+  no_blur: acc=0.5550, bacc=0.5550, f1=0.6561
+  [global] Batch 10/125
+  [global] Batch 20/125
+  [global] Batch 30/125
+  [global] Batch 40/125
+  [global] Batch 50/125
+  [global] Batch 60/125
+  [global] Batch 70/125
+  [global] Batch 80/125
+  [global] Batch 90/125
+  [global] Batch 100/125
+  [global] Batch 110/125
+  [global] Batch 120/125
+  global: acc=0.5935, bacc=0.5935, f1=0.6723
+
+Testing dataset: glide
+  [no_blur] Batch 10/750
+  [no_blur] Batch 20/750
+  [no_blur] Batch 30/750
+  [no_blur] Batch 40/750
+  [no_blur] Batch 50/750
+  [no_blur] Batch 60/750
+  [no_blur] Batch 70/750
+  [no_blur] Batch 80/750
+  [no_blur] Batch 90/750
+  [no_blur] Batch 100/750
+  [no_blur] Batch 110/750
+  [no_blur] Batch 120/750
+  [no_blur] Batch 130/750
+  [no_blur] Batch 140/750
+  [no_blur] Batch 150/750
+  [no_blur] Batch 160/750
+  [no_blur] Batch 170/750
+  [no_blur] Batch 180/750
+  [no_blur] Batch 190/750
+  [no_blur] Batch 200/750
+  [no_blur] Batch 210/750
+  [no_blur] Batch 220/750
+  [no_blur] Batch 230/750
+  [no_blur] Batch 240/750
+  [no_blur] Batch 250/750
+  [no_blur] Batch 260/750
+  [no_blur] Batch 270/750
+  [no_blur] Batch 280/750
+  [no_blur] Batch 290/750
+  [no_blur] Batch 300/750
+  [no_blur] Batch 310/750
+  [no_blur] Batch 320/750
+  [no_blur] Batch 330/750
+  [no_blur] Batch 340/750
+  [no_blur] Batch 350/750
+  [no_blur] Batch 360/750
+  [no_blur] Batch 370/750
+  [no_blur] Batch 380/750
+  [no_blur] Batch 390/750
+  [no_blur] Batch 400/750
+  [no_blur] Batch 410/750
+  [no_blur] Batch 420/750
+  [no_blur] Batch 430/750
+  [no_blur] Batch 440/750
+  [no_blur] Batch 450/750
+  [no_blur] Batch 460/750
+  [no_blur] Batch 470/750
+  [no_blur] Batch 480/750
+  [no_blur] Batch 490/750
+  [no_blur] Batch 500/750
+  [no_blur] Batch 510/750
+  [no_blur] Batch 520/750
+  [no_blur] Batch 530/750
+  [no_blur] Batch 540/750
+  [no_blur] Batch 550/750
+  [no_blur] Batch 560/750
+  [no_blur] Batch 570/750
+  [no_blur] Batch 580/750
+  [no_blur] Batch 590/750
+  [no_blur] Batch 600/750
+  [no_blur] Batch 610/750
+  [no_blur] Batch 620/750
+  [no_blur] Batch 630/750
+  [no_blur] Batch 640/750
+  [no_blur] Batch 650/750
+  [no_blur] Batch 660/750
+  [no_blur] Batch 670/750
+  [no_blur] Batch 680/750
+  [no_blur] Batch 690/750
+  [no_blur] Batch 700/750
+  [no_blur] Batch 710/750
+  [no_blur] Batch 720/750
+  [no_blur] Batch 730/750
+  [no_blur] Batch 740/750
+  [no_blur] Batch 750/750
+  no_blur: acc=0.7792, bacc=0.7792, f1=0.7396
+  [global] Batch 10/750
+  [global] Batch 20/750
+  [global] Batch 30/750
+  [global] Batch 40/750
+  [global] Batch 50/750
+  [global] Batch 60/750
+  [global] Batch 70/750
+  [global] Batch 80/750
+  [global] Batch 90/750
+  [global] Batch 100/750
+  [global] Batch 110/750
+  [global] Batch 120/750
+  [global] Batch 130/750
+  [global] Batch 140/750
+  [global] Batch 150/750
+  [global] Batch 160/750
+  [global] Batch 170/750
+  [global] Batch 180/750
+  [global] Batch 190/750
+  [global] Batch 200/750
+  [global] Batch 210/750
+  [global] Batch 220/750
+  [global] Batch 230/750
+  [global] Batch 240/750
+  [global] Batch 250/750
+  [global] Batch 260/750
+  [global] Batch 270/750
+  [global] Batch 280/750
+  [global] Batch 290/750
+  [global] Batch 300/750
+  [global] Batch 310/750
+  [global] Batch 320/750
+  [global] Batch 330/750
+  [global] Batch 340/750
+  [global] Batch 350/750
+  [global] Batch 360/750
+  [global] Batch 370/750
+  [global] Batch 380/750
+  [global] Batch 390/750
+  [global] Batch 400/750
+  [global] Batch 410/750
+  [global] Batch 420/750
+  [global] Batch 430/750
+  [global] Batch 440/750
+  [global] Batch 450/750
+  [global] Batch 460/750
+  [global] Batch 470/750
+  [global] Batch 480/750
+  [global] Batch 490/750
+  [global] Batch 500/750
+  [global] Batch 510/750
+  [global] Batch 520/750
+  [global] Batch 530/750
+  [global] Batch 540/750
+  [global] Batch 550/750
+  [global] Batch 560/750
+  [global] Batch 570/750
+  [global] Batch 580/750
+  [global] Batch 590/750
+  [global] Batch 600/750
+  [global] Batch 610/750
+  [global] Batch 620/750
+  [global] Batch 630/750
+  [global] Batch 640/750
+  [global] Batch 650/750
+  [global] Batch 660/750
+  [global] Batch 670/750
+  [global] Batch 680/750
+  [global] Batch 690/750
+  [global] Batch 700/750
+  [global] Batch 710/750
+  [global] Batch 720/750
+  [global] Batch 730/750
+  [global] Batch 740/750
+  [global] Batch 750/750
+  global: acc=0.7502, bacc=0.7502, f1=0.7006
+Skip own_benchmark: dataset path not available
+Results saved to: /nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/outputs/paper_parity/eva_giant_1_1b_sdv14_dino_detect_paper_blur01/aigc_eval_student
+[0;36m[04:33:05] checkpoint: blur_generalization_suite/outputs/paper_parity/eva_giant_1_1b_sdv14_dino_detect_paper_blur01/best_student_model.pth[0m
+
+[1;34m[04:33:05] === 训练 aimv2_huge_840m(SDv1.4 + DINO-Detect,paper profile) ===[0m
+W0801 04:33:08.387000 1033272 site-packages/torch/distributed/run.py:851] 
+W0801 04:33:08.387000 1033272 site-packages/torch/distributed/run.py:851] *****************************************
+W0801 04:33:08.387000 1033272 site-packages/torch/distributed/run.py:851] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0801 04:33:08.387000 1033272 site-packages/torch/distributed/run.py:851] *****************************************
+[W801 04:33:23.845538543 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:23.942226148 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:24.272148515 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:25.390405720 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:25.449425080 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:25.581841119 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:25.633190007 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[W801 04:33:25.651001747 Utils.hpp:137] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+[rank2]:[W801 04:33:48.459670182 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[rank1]:[W801 04:33:48.460924976 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+[rank6]:[W801 04:33:48.472172201 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[rank4]:[W801 04:33:48.473812371 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+[rank5]:[W801 04:33:48.474872557 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[rank7]:[W801 04:33:48.475143505 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[rank3]:[W801 04:33:48.475941508 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+[rank0]:[W801 04:33:48.478733843 Utils.hpp:112] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+==============================================================================
+PAPER-FAITHFUL DINO-DETECT BACKBONE TRAINING
+Backbone: aimv2_huge_840m (aimv2)
+Path: /nas_train/app.e0016372/models/apple/aimv2-huge-patch14-336
+Profile/mode: paper / dino_detect
+Input: resize 336, crop 336
+Effective batch per GPU: teacher=128, student=128
+Trainable parameters before phase selection: 4203780 / 685547268
+Artifacts: blur_generalization_suite/outputs/paper_parity/aimv2_huge_840m_sdv14_dino_detect_paper_blur01
+==============================================================================
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:895: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  teacher_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:420: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+Teacher epoch 1/3: loss=0.0548, acc=91.49%
+/nas_train/app.e0016372/miniforge3/envs/swift2/lib/python3.12/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  return func(*args, **kwargs)
+Teacher epoch 2/3: loss=0.0199, acc=97.23%
+Teacher epoch 3/3: loss=0.0150, acc=97.97%
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
