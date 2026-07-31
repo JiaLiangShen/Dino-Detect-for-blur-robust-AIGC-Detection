@@ -1,0 +1,17 @@
+branch,backbone_name,dataset,bacc
+student,aimv2-huge-patch14-336,cyclegan,0.6260408781226343
+student,aimv2-huge-patch14-336,progan,0.875625
+student,aimv2-huge-patch14-336,stylegan2,0.7203930896344517
+student,aimv2-huge-patch14-336,stylegan,0.7351026539809715
+student,aimv2-huge-patch14-336,adm,0.6375
+student,aimv2-huge-patch14-336,vqdm,0.7831666666666667
+student,aimv2-huge-patch14-336,sdv14,0.98725
+student,aimv2-huge-patch14-336,sdv15,0.98475
+student,aimv2-huge-patch14-336,stargan,0.5945472736368185
+student,aimv2-huge-patch14-336,wukong,0.9580833333333334
+student,aimv2-huge-patch14-336,midjourney,0.7214166666666666
+student,aimv2-huge-patch14-336,biggan,0.76825
+student,aimv2-huge-patch14-336,sd-xl,0.74875
+student,aimv2-huge-patch14-336,gaugan,0.7112
+student,aimv2-huge-patch14-336,whichfaceisreal,0.7765
+student,aimv2-huge-patch14-336,glide,0.7955833333333333
