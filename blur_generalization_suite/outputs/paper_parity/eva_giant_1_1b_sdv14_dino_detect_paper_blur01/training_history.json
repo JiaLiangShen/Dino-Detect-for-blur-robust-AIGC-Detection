@@ -1,0 +1,140 @@
+{
+  "teacher_history": {
+    "train_loss": [
+      0.11675624065151724,
+      0.040541684786293025,
+      0.030871686287338624
+    ],
+    "train_acc": [
+      83.97633622332317,
+      94.3240282012195,
+      95.75344178734755
+    ]
+  },
+  "student_history": {
+    "train_total_loss": [
+      0.7342306790737118,
+      0.5822910240698015,
+      0.5332238606642932,
+      0.504734831794006,
+      0.4899503525585027
+    ],
+    "train_cls_loss": [
+      0.12371699324276272,
+      0.05877138543234273,
+      0.04591081625762965,
+      0.04080175274161664,
+      0.038267183656433015
+    ],
+    "train_distill_loss": [
+      0.0075305015827328795,
+      0.002747442629760155,
+      0.0021036348808842528,
+      0.0019064428890124354,
+      0.0018123739517084223
+    ],
+    "train_feature_loss": [
+      0.8883822389719326,
+      0.7548228168587495,
+      0.7024737259248135,
+      0.6712164593599282,
+      0.656237428945421
+    ],
+    "train_ordinal_loss": [
+      0.5293068635070174,
+      0.47786927236408766,
+      0.4465751365812427,
+      0.42139467117575385,
+      0.4058402518297421
+    ],
+    "train_acc": [
+      79.5359541730183,
+      90.99031774009147,
+      93.20902010289635,
+      94.10072884908537,
+      94.45741234756098
+    ]
+  },
+  "teacher_best_acc": 95.75344178734755,
+  "student_best_acc": 94.45741234756098,
+  "config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/timm/eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    "backbone_family": "eva",
+    "backbone_preset": "eva_giant_1_1b",
+    "loader_backend": "timm",
+    "architecture_name": "eva_giant_patch14_336.m30m_ft_in22k_in1k",
+    "num_classes": 2,
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "max_samples_per_class": null,
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "training_profile": "paper",
+    "experiment_mode": "dino_detect",
+    "strict_motion_only": false,
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "trajectory_jitter": 0.12,
+    "mixed_mode_ratio": 0.5,
+    "classification_loss": "focal",
+    "focal_alpha": 1.0,
+    "focal_gamma": 2.0,
+    "alpha_cls": 1.0,
+    "alpha_distill": 1.0,
+    "alpha_feature": 0.5,
+    "alpha_ordinal": 0.3,
+    "temperature": 0.07,
+    "jpeg_augmentation": true,
+    "co_degradations": true,
+    "defocus_augmentation": true,
+    "noise_augmentation": true,
+    "resize_degradation": true,
+    "explicit_synthetic_augmentations": [
+      "motion_blur",
+      "ccmba",
+      "defocus_blur",
+      "sensor_noise",
+      "jpeg",
+      "down_up_resize"
+    ],
+    "teacher_epochs": 3,
+    "student_epochs": 5,
+    "teacher_learning_rate": 0.0001,
+    "student_learning_rate": 5e-05,
+    "weight_decay": 0.0001,
+    "max_grad_norm": 0.0,
+    "teacher_micro_batch": 32,
+    "student_micro_batch": 32,
+    "teacher_accumulation_steps": 4,
+    "student_accumulation_steps": 4,
+    "teacher_effective_batch_per_gpu": 128,
+    "student_effective_batch_per_gpu": 128,
+    "teacher_global_effective_batch": 1024,
+    "student_global_effective_batch": 1024,
+    "class_balanced_focal": false,
+    "transform_config": {
+      "resize_size": 336,
+      "crop_size": 336,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "local_files_only": true,
+    "default_eval_branch": "student",
+    "seed": 3407,
+    "resolved_focal_alpha": 1.0,
+    "world_size": 8
+  }
+}
