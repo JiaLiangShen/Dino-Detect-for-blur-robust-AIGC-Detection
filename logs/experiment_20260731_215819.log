@@ -4252,3 +4252,260 @@ Teacher epoch 3/3: loss=0.0150, acc=97.97%
   with autocast(enabled=device.type == "cuda"):
 /nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
   with autocast(enabled=device.type == "cuda"):
+student epoch 1/5: loss=0.3934, acc=85.34%
+student epoch 2/5: loss=0.2280, acc=94.05%
+student epoch 3/5: loss=0.2024, acc=95.76%
+student epoch 4/5: loss=0.1892, acc=96.36%
+student epoch 5/5: loss=0.1824, acc=96.64%
+Training artifacts saved to: blur_generalization_suite/outputs/paper_parity/aimv2_huge_840m_sdv14_dino_detect_paper_blur01
+
+[1;34m[05:33:28] === AIGC 评测 aimv2_huge_840m(clean + motion blur) ===[0m
+`torch_dtype` is deprecated! Use `dtype` instead!
+======================================================================
+TEACHER-STUDENT AIGCBENCHMARK EVALUATION
+Model path: blur_generalization_suite/outputs/paper_parity/aimv2_huge_840m_sdv14_dino_detect_paper_blur01/best_student_model.pth
+Branch: student
+Missing keys: 221 | Unexpected keys: 0
+======================================================================
+
+Testing dataset: cyclegan
+  [no_blur] Batch 10/166
+  [no_blur] Batch 20/166
+  [no_blur] Batch 30/166
+  [no_blur] Batch 40/166
+  [no_blur] Batch 50/166
+  [no_blur] Batch 60/166
+  [no_blur] Batch 70/166
+  [no_blur] Batch 80/166
+  [no_blur] Batch 90/166
+  [no_blur] Batch 100/166
+  [no_blur] Batch 110/166
+  [no_blur] Batch 120/166
+  [no_blur] Batch 130/166
+  [no_blur] Batch 140/166
+  [no_blur] Batch 150/166
+  [no_blur] Batch 160/166
+  no_blur: acc=0.6260, bacc=0.6260, f1=0.4256
+  [global] Batch 10/166
+  [global] Batch 20/166
+  [global] Batch 30/166
+  [global] Batch 40/166
+  [global] Batch 50/166
+  [global] Batch 60/166
+  [global] Batch 70/166
+  [global] Batch 80/166
+  [global] Batch 90/166
+  [global] Batch 100/166
+  [global] Batch 110/166
+  [global] Batch 120/166
+  [global] Batch 130/166
+  [global] Batch 140/166
+  [global] Batch 150/166
+  [global] Batch 160/166
+  global: acc=0.5655, bacc=0.5655, f1=0.3356
+
+Testing dataset: progan
+  [no_blur] Batch 10/500
+  [no_blur] Batch 20/500
+  [no_blur] Batch 30/500
+  [no_blur] Batch 40/500
+  [no_blur] Batch 50/500
+  [no_blur] Batch 60/500
+  [no_blur] Batch 70/500
+  [no_blur] Batch 80/500
+  [no_blur] Batch 90/500
+  [no_blur] Batch 100/500
+  [no_blur] Batch 110/500
+  [no_blur] Batch 120/500
+  [no_blur] Batch 130/500
+  [no_blur] Batch 140/500
+  [no_blur] Batch 150/500
+  [no_blur] Batch 160/500
+  [no_blur] Batch 170/500
+  [no_blur] Batch 180/500
+  [no_blur] Batch 190/500
+  [no_blur] Batch 200/500
+  [no_blur] Batch 210/500
+  [no_blur] Batch 220/500
+  [no_blur] Batch 230/500
+  [no_blur] Batch 240/500
+  [no_blur] Batch 250/500
+  [no_blur] Batch 260/500
+  [no_blur] Batch 270/500
+  [no_blur] Batch 280/500
+  [no_blur] Batch 290/500
+  [no_blur] Batch 300/500
+  [no_blur] Batch 310/500
+  [no_blur] Batch 320/500
+  [no_blur] Batch 330/500
+  [no_blur] Batch 340/500
+  [no_blur] Batch 350/500
+  [no_blur] Batch 360/500
+  [no_blur] Batch 370/500
+  [no_blur] Batch 380/500
+  [no_blur] Batch 390/500
+  [no_blur] Batch 400/500
+  [no_blur] Batch 410/500
+  [no_blur] Batch 420/500
+  [no_blur] Batch 430/500
+  [no_blur] Batch 440/500
+  [no_blur] Batch 450/500
+  [no_blur] Batch 460/500
+  [no_blur] Batch 470/500
+  [no_blur] Batch 480/500
+  [no_blur] Batch 490/500
+  [no_blur] Batch 500/500
+  no_blur: acc=0.8756, bacc=0.8756, f1=0.8678
+  [global] Batch 10/500
+  [global] Batch 20/500
+  [global] Batch 30/500
+  [global] Batch 40/500
+  [global] Batch 50/500
+  [global] Batch 60/500
+  [global] Batch 70/500
+  [global] Batch 80/500
+  [global] Batch 90/500
+  [global] Batch 100/500
+  [global] Batch 110/500
+  [global] Batch 120/500
+  [global] Batch 130/500
+  [global] Batch 140/500
+  [global] Batch 150/500
+  [global] Batch 160/500
+  [global] Batch 170/500
+  [global] Batch 180/500
+  [global] Batch 190/500
+  [global] Batch 200/500
+  [global] Batch 210/500
+  [global] Batch 220/500
+  [global] Batch 230/500
+  [global] Batch 240/500
+  [global] Batch 250/500
+  [global] Batch 260/500
+  [global] Batch 270/500
+  [global] Batch 280/500
+  [global] Batch 290/500
+  [global] Batch 300/500
+  [global] Batch 310/500
+  [global] Batch 320/500
+  [global] Batch 330/500
+  [global] Batch 340/500
+  [global] Batch 350/500
+  [global] Batch 360/500
+  [global] Batch 370/500
+  [global] Batch 380/500
+  [global] Batch 390/500
+  [global] Batch 400/500
+  [global] Batch 410/500
+  [global] Batch 420/500
+  [global] Batch 430/500
+  [global] Batch 440/500
+  [global] Batch 450/500
+  [global] Batch 460/500
+  [global] Batch 470/500
+  [global] Batch 480/500
+  [global] Batch 490/500
+  [global] Batch 500/500
+  global: acc=0.7374, bacc=0.7374, f1=0.6937
+
+Testing dataset: stylegan2
+  [no_blur] Batch 10/999
+  [no_blur] Batch 20/999
+  [no_blur] Batch 30/999
+  [no_blur] Batch 40/999
+  [no_blur] Batch 50/999
+  [no_blur] Batch 60/999
+  [no_blur] Batch 70/999
+  [no_blur] Batch 80/999
+  [no_blur] Batch 90/999
+  [no_blur] Batch 100/999
+  [no_blur] Batch 110/999
+  [no_blur] Batch 120/999
+  [no_blur] Batch 130/999
+  [no_blur] Batch 140/999
+  [no_blur] Batch 150/999
+  [no_blur] Batch 160/999
+  [no_blur] Batch 170/999
+  [no_blur] Batch 180/999
+  [no_blur] Batch 190/999
+  [no_blur] Batch 200/999
+  [no_blur] Batch 210/999
+  [no_blur] Batch 220/999
+  [no_blur] Batch 230/999
+  [no_blur] Batch 240/999
+  [no_blur] Batch 250/999
+  [no_blur] Batch 260/999
+  [no_blur] Batch 270/999
+  [no_blur] Batch 280/999
+  [no_blur] Batch 290/999
+  [no_blur] Batch 300/999
+  [no_blur] Batch 310/999
+  [no_blur] Batch 320/999
+  [no_blur] Batch 330/999
+  [no_blur] Batch 340/999
+  [no_blur] Batch 350/999
+  [no_blur] Batch 360/999
+  [no_blur] Batch 370/999
+  [no_blur] Batch 380/999
+  [no_blur] Batch 390/999
+  [no_blur] Batch 400/999
+  [no_blur] Batch 410/999
+  [no_blur] Batch 420/999
+  [no_blur] Batch 430/999
+  [no_blur] Batch 440/999
+  [no_blur] Batch 450/999
+  [no_blur] Batch 460/999
+  [no_blur] Batch 470/999
+  [no_blur] Batch 480/999
+  [no_blur] Batch 490/999
+  [no_blur] Batch 500/999
+  [no_blur] Batch 510/999
+  [no_blur] Batch 520/999
+  [no_blur] Batch 530/999
+  [no_blur] Batch 540/999
+  [no_blur] Batch 550/999
+  [no_blur] Batch 560/999
+  [no_blur] Batch 570/999
+  [no_blur] Batch 580/999
+  [no_blur] Batch 590/999
+  [no_blur] Batch 600/999
+  [no_blur] Batch 610/999
+  [no_blur] Batch 620/999
+  [no_blur] Batch 630/999
+  [no_blur] Batch 640/999
+  [no_blur] Batch 650/999
+  [no_blur] Batch 660/999
+  [no_blur] Batch 670/999
+  [no_blur] Batch 680/999
+  [no_blur] Batch 690/999
+  [no_blur] Batch 700/999
+  [no_blur] Batch 710/999
+  [no_blur] Batch 720/999
+  [no_blur] Batch 730/999
+  [no_blur] Batch 740/999
+  [no_blur] Batch 750/999
+  [no_blur] Batch 760/999
+  [no_blur] Batch 770/999
+  [no_blur] Batch 780/999
+  [no_blur] Batch 790/999
+  [no_blur] Batch 800/999
+  [no_blur] Batch 810/999
+  [no_blur] Batch 820/999
+  [no_blur] Batch 830/999
+  [no_blur] Batch 840/999
+  [no_blur] Batch 850/999
+  [no_blur] Batch 860/999
+  [no_blur] Batch 870/999
+  [no_blur] Batch 880/999
+  [no_blur] Batch 890/999
+  [no_blur] Batch 900/999
+  [no_blur] Batch 910/999
+  [no_blur] Batch 920/999
+  [no_blur] Batch 930/999
+  [no_blur] Batch 940/999
+  [no_blur] Batch 950/999
+  [no_blur] Batch 960/999
+  [no_blur] Batch 970/999
+  [no_blur] Batch 980/999
+  [no_blur] Batch 990/999
+  no_blur: acc=0.7204, bacc=0.7204, f1=0.6342
