@@ -1,6 +1,10 @@
 temp/
 .vscode/
 __pycache__/
+*.pyc
+*.pyo
 .ipynb_checkpoints/
 **/*.pth
-blur_generalization_suite/__pycache__/
+logs/auto_commit*.log
+smoke_outputs/
+logs/smoke_test*.log

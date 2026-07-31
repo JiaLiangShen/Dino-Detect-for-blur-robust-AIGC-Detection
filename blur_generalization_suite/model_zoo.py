@@ -762,17 +762,21 @@ def _load_timm_vision_backbone(
             backbone_dir,
             ("model.safetensors", "pytorch_model.bin", "model.pth", "checkpoint.pth"),
         )
+        # 注:EVA 等带分类 head 的 checkpoint 与 num_classes=0 的无 head 模型 strict 加载会冲突
+        # (Unexpected key: head.weight/head.bias),这里手动加载并过滤 head,允许非严格匹配。
         if checkpoint_path is None:
             raise FileNotFoundError(
                 f"No supported weight file found under {backbone_dir}. "
                 "Expected model.safetensors, pytorch_model.bin, model.pth, or checkpoint.pth."
             )
-        return timm.create_model(
+        from timm.models import load_checkpoint
+        model = timm.create_model(
             resolved_architecture,
             pretrained=False,
             num_classes=0,
-            checkpoint_path=str(checkpoint_path),
         )
+        load_checkpoint(model, checkpoint_path, strict=False)
+        return model
 
     if _looks_like_filesystem_path(model_path):
         raise FileNotFoundError(f"Backbone path does not exist: {model_path}")

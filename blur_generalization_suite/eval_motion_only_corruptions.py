@@ -254,12 +254,14 @@ def load_student_model(
 
 
 def evaluate_loader(model, loader, device: torch.device):
+    from tqdm import tqdm
+
     labels: List[int] = []
     predictions: List[int] = []
     probabilities: List[float] = []
     paths: List[str] = []
     with torch.no_grad():
-        for images, batch_labels, batch_paths in loader:
+        for images, batch_labels, batch_paths in tqdm(loader, desc="infer", leave=False, dynamic_ncols=True):
             images = images.to(device, non_blocking=True)
             _, logits = model.forward_student(images)
             probs = torch.softmax(logits, dim=1)[:, 1]
@@ -547,6 +549,12 @@ def main() -> None:
                     if args.num_workers > 0:
                         loader_kwargs["prefetch_factor"] = 2
                     loader = DataLoader(**loader_kwargs)
+                    n_imgs = len(dataset)
+                    print(
+                        f"  [{model_name}] {corruption}/{severity.label} "
+                        f"@ {platform}: {n_imgs} imgs, {len(loader)} batches ...",
+                        flush=True,
+                    )
                     labels, predictions, probabilities, paths = evaluate_loader(model, loader, device)
                     metrics = compute_binary_metrics(labels, predictions)
                     result = {
