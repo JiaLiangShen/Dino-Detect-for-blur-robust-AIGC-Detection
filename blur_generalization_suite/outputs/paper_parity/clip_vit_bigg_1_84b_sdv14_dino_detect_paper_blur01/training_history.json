@@ -1,0 +1,140 @@
+{
+  "teacher_history": {
+    "train_loss": [
+      0.039767812661560036,
+      0.012174698353147705,
+      0.009417579961285791
+    ],
+    "train_acc": [
+      95.04305211509147,
+      98.37259432164635,
+      98.73820979420732
+    ]
+  },
+  "student_history": {
+    "train_total_loss": [
+      0.44039055539107674,
+      0.26456199693294785,
+      0.23041110906307016,
+      0.21556313285496223,
+      0.21021001239125503
+    ],
+    "train_cls_loss": [
+      0.06491928496529353,
+      0.029535990803940034,
+      0.02371416268798806,
+      0.021336112394234944,
+      0.020435323132842978
+    ],
+    "train_distill_loss": [
+      0.004002824424798865,
+      0.0014612406743489386,
+      0.0011326744873130976,
+      0.0010299448186985407,
+      0.0009635041217092949
+    ],
+    "train_feature_loss": [
+      0.5605359273258506,
+      0.38086001797034064,
+      0.33713478749481646,
+      0.31624041854335766,
+      0.3086370800269722
+    ],
+    "train_ordinal_loss": [
+      0.30400159692238427,
+      0.14378251558703528,
+      0.12332292260614894,
+      0.11692288357525973,
+      0.1149754790722665
+    ],
+    "train_acc": [
+      90.50144102515245,
+      95.79244474085365,
+      96.64455506859755,
+      97.03905059070122,
+      97.12777486661585
+    ]
+  },
+  "teacher_best_acc": 98.73820979420732,
+  "student_best_acc": 97.12777486661585,
+  "config": {
+    "dinov3_model_id": "/nas_train/app.e0016372/models/temp/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
+    "backbone_family": "clip",
+    "backbone_preset": "clip_vit_bigg_1_84b",
+    "loader_backend": "transformers_clip",
+    "architecture_name": null,
+    "num_classes": 2,
+    "projection_dim": 512,
+    "data_preset": "sdv14",
+    "train_root": "/data/app.e0016372/imagenet_tmp/imagenet_ai_0419_sdv4",
+    "max_samples_per_class": null,
+    "ccmba_data_dir": "/data/app.e0016372/imagenet_tmp/ccmba_processed_sdv44",
+    "training_profile": "paper",
+    "experiment_mode": "dino_detect",
+    "strict_motion_only": false,
+    "blur_mode": "mixed",
+    "blur_type": "motion",
+    "blur_prob": 0.1,
+    "blur_strength_range": [
+      0.1,
+      0.3
+    ],
+    "trajectory_jitter": 0.12,
+    "mixed_mode_ratio": 0.5,
+    "classification_loss": "focal",
+    "focal_alpha": 1.0,
+    "focal_gamma": 2.0,
+    "alpha_cls": 1.0,
+    "alpha_distill": 1.0,
+    "alpha_feature": 0.5,
+    "alpha_ordinal": 0.3,
+    "temperature": 0.07,
+    "jpeg_augmentation": true,
+    "co_degradations": true,
+    "defocus_augmentation": true,
+    "noise_augmentation": true,
+    "resize_degradation": true,
+    "explicit_synthetic_augmentations": [
+      "motion_blur",
+      "ccmba",
+      "defocus_blur",
+      "sensor_noise",
+      "jpeg",
+      "down_up_resize"
+    ],
+    "teacher_epochs": 3,
+    "student_epochs": 5,
+    "teacher_learning_rate": 0.0001,
+    "student_learning_rate": 5e-05,
+    "weight_decay": 0.0001,
+    "max_grad_norm": 0.0,
+    "teacher_micro_batch": 32,
+    "student_micro_batch": 32,
+    "teacher_accumulation_steps": 4,
+    "student_accumulation_steps": 4,
+    "teacher_effective_batch_per_gpu": 128,
+    "student_effective_batch_per_gpu": 128,
+    "teacher_global_effective_batch": 1024,
+    "student_global_effective_batch": 1024,
+    "class_balanced_focal": false,
+    "transform_config": {
+      "resize_size": 224,
+      "crop_size": 224,
+      "mean": [
+        0.48145466,
+        0.4578275,
+        0.40821073
+      ],
+      "std": [
+        0.26862954,
+        0.26130258,
+        0.27577711
+      ]
+    },
+    "local_files_only": true,
+    "default_eval_branch": "student",
+    "seed": 3407,
+    "resolved_focal_alpha": 1.0,
+    "world_size": 8
+  }
+}
