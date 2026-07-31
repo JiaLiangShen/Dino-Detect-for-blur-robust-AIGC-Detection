@@ -1,4 +1,5 @@
 ﻿import json
+import math
 import random
 from dataclasses import dataclass
 from io import BytesIO
@@ -53,17 +54,55 @@ def _kernel_size_from_strength(strength: float) -> int:
     return max(3, min(kernel_size, 31))
 
 
-def apply_motion_blur_to_pil(image_pil: Image.Image, strength: float) -> Image.Image:
-    image_cv = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
-    kernel_size = _kernel_size_from_strength(strength)
-    kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
-    kernel[kernel_size // 2, :] = 1.0
-    kernel /= kernel.sum()
-    blurred_cv = cv2.filter2D(image_cv, -1, kernel)
-    return Image.fromarray(cv2.cvtColor(blurred_cv, cv2.COLOR_BGR2RGB))
+def _motion_kernel_2d(
+    kernel_size: int,
+    device: torch.device,
+    dtype: torch.dtype,
+    angle_degrees: float | None = None,
+    trajectory_jitter: float = 0.12,
+    phase: float | None = None,
+) -> torch.Tensor:
+    angle = math.radians(random.uniform(0.0, 180.0) if angle_degrees is None else angle_degrees)
+    phase = random.uniform(0.0, 2.0 * math.pi) if phase is None else phase
+    coords = torch.arange(kernel_size, device=device, dtype=dtype) - (kernel_size - 1) / 2.0
+    yy, xx = torch.meshgrid(coords, coords, indexing="ij")
+    along = xx * math.cos(angle) + yy * math.sin(angle)
+    perpendicular = -xx * math.sin(angle) + yy * math.cos(angle)
+    half_length = max((kernel_size - 2) / 2.0, 1.0)
+    curvature = trajectory_jitter * kernel_size * torch.sin(
+        math.pi * along / half_length + phase
+    )
+    distance = perpendicular - curvature
+    support = (along.abs() <= half_length).to(dtype)
+    kernel = torch.exp(-0.5 * (distance / 0.55).pow(2)) * support
+    return kernel / kernel.sum().clamp_min(torch.finfo(dtype).eps)
 
 
-def apply_motion_blur_to_tensor(images: torch.Tensor, strength: float) -> torch.Tensor:
+def apply_motion_blur_to_pil(
+    image_pil: Image.Image,
+    strength: float,
+    angle_degrees: float | None = None,
+    trajectory_jitter: float = 0.12,
+    phase: float | None = None,
+) -> Image.Image:
+    tensor = TF.to_tensor(image_pil).unsqueeze(0)
+    blurred = apply_motion_blur_to_tensor(
+        tensor,
+        strength,
+        angle_degrees=angle_degrees,
+        trajectory_jitter=trajectory_jitter,
+        phase=phase,
+    ).squeeze(0)
+    return TF.to_pil_image(blurred.clamp(0.0, 1.0))
+
+
+def apply_motion_blur_to_tensor(
+    images: torch.Tensor,
+    strength: float,
+    angle_degrees: float | None = None,
+    trajectory_jitter: float = 0.12,
+    phase: float | None = None,
+) -> torch.Tensor:
     if not isinstance(images, torch.Tensor):
         raise TypeError("images must be a torch.Tensor")
 
@@ -71,13 +110,19 @@ def apply_motion_blur_to_tensor(images: torch.Tensor, strength: float) -> torch.
     device = images.device
     channels = images.shape[1]
 
-    kernel = torch.zeros(kernel_size, kernel_size, device=device)
-    kernel[kernel_size // 2, :] = 1.0
-    kernel = kernel / kernel.sum()
+    kernel = _motion_kernel_2d(
+        kernel_size,
+        device=device,
+        dtype=images.dtype,
+        angle_degrees=angle_degrees,
+        trajectory_jitter=trajectory_jitter,
+        phase=phase,
+    )
     kernel = kernel.view(1, 1, kernel_size, kernel_size).expand(channels, 1, -1, -1)
 
     padding = kernel_size // 2
-    return F.conv2d(images, kernel, padding=padding, groups=channels)
+    padded = F.pad(images, (padding, padding, padding, padding), mode="reflect")
+    return F.conv2d(padded, kernel, groups=channels)
 
 
 def apply_gaussian_blur_to_tensor(images: torch.Tensor, strength: float) -> torch.Tensor:
@@ -86,9 +131,14 @@ def apply_gaussian_blur_to_tensor(images: torch.Tensor, strength: float) -> torc
     return TF.gaussian_blur(images, kernel_size=kernel_size, sigma=sigma)
 
 
-def apply_blur_to_tensor(images: torch.Tensor, blur_type: str, strength: float) -> torch.Tensor:
+def apply_blur_to_tensor(
+    images: torch.Tensor,
+    blur_type: str,
+    strength: float,
+    **kwargs,
+) -> torch.Tensor:
     if blur_type == "motion":
-        return apply_motion_blur_to_tensor(images, strength)
+        return apply_motion_blur_to_tensor(images, strength, **kwargs)
     if blur_type == "gaussian":
         return apply_gaussian_blur_to_tensor(images, strength)
     raise ValueError(f"Unknown blur_type: {blur_type}")
@@ -125,12 +175,19 @@ def normalize_tensor_images(images: torch.Tensor, mean: Tuple[float, float, floa
     return (images - _expand_stats(mean, images.device, images.dtype)) / _expand_stats(std, images.device, images.dtype)
 
 
-def apply_blur_to_normalized_tensor(images: torch.Tensor, blur_type: str, strength: float, mean: Tuple[float, float, float], std: Tuple[float, float, float]) -> torch.Tensor:
+def apply_blur_to_normalized_tensor(
+    images: torch.Tensor,
+    blur_type: str,
+    strength: float,
+    mean: Tuple[float, float, float],
+    std: Tuple[float, float, float],
+    **kwargs,
+) -> torch.Tensor:
     input_was_3d = images.ndim == 3
     if input_was_3d:
         images = images.unsqueeze(0)
     raw_images = unnormalize_tensor_images(images.float(), mean, std).clamp(0.0, 1.0)
-    blurred_raw = apply_blur_to_tensor(raw_images, blur_type, strength).clamp(0.0, 1.0)
+    blurred_raw = apply_blur_to_tensor(raw_images, blur_type, strength, **kwargs).clamp(0.0, 1.0)
     normalized = normalize_tensor_images(blurred_raw, mean, std)
     return normalized.squeeze(0) if input_was_3d else normalized
 
@@ -213,6 +270,70 @@ def build_strong_train_transform(config: TransformConfig) -> transforms.Compose:
             transforms.Normalize(mean=config.mean, std=config.std),
         ]
     )
+
+
+def build_paper_train_transform(
+    config: TransformConfig,
+    include_jpeg: bool = True,
+) -> transforms.Compose:
+    operations = [
+        transforms.Resize((config.resize_size, config.resize_size)),
+        transforms.RandomCrop((config.crop_size, config.crop_size)),
+        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.05),
+        transforms.RandomRotation(degrees=5),
+    ]
+    if include_jpeg:
+        operations.append(
+            transforms.Lambda(lambda img: apply_light_jpeg(img) if random.random() < 0.3 else img)
+        )
+    operations.extend(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize(mean=config.mean, std=config.std),
+        ]
+    )
+    return transforms.Compose(operations)
+
+
+def apply_paper_co_degradations_to_normalized_tensor(
+    image: torch.Tensor,
+    mean: Tuple[float, float, float],
+    std: Tuple[float, float, float],
+    defocus_prob: float = 0.2,
+    noise_prob: float = 0.1,
+    jpeg_prob: float = 0.1,
+    resize_prob: float = 0.1,
+) -> torch.Tensor:
+    if image.ndim != 3:
+        raise ValueError("image must have shape [channels, height, width]")
+
+    device = image.device
+    dtype = image.dtype
+    raw = unnormalize_tensor_images(image.unsqueeze(0).float(), mean, std).clamp(0.0, 1.0)
+
+    if random.random() < defocus_prob:
+        sigma = random.uniform(0.1, 2.5)
+        kernel_size = min(31, max(3, 2 * math.ceil(3.0 * sigma) + 1))
+        raw = TF.gaussian_blur(raw, kernel_size=kernel_size, sigma=sigma)
+
+    if random.random() < noise_prob:
+        noise_std = random.uniform(0.002, 0.02)
+        raw = (raw + torch.randn_like(raw) * noise_std).clamp(0.0, 1.0)
+
+    if random.random() < resize_prob:
+        height, width = raw.shape[-2:]
+        scale = random.uniform(0.5, 0.9)
+        down_size = (max(8, int(height * scale)), max(8, int(width * scale)))
+        raw = F.interpolate(raw, size=down_size, mode="bilinear", align_corners=False, antialias=True)
+        raw = F.interpolate(raw, size=(height, width), mode="bilinear", align_corners=False, antialias=True)
+
+    if random.random() < jpeg_prob:
+        quality = random.randint(70, 95)
+        pil_image = TF.to_pil_image(raw.squeeze(0).cpu())
+        raw = TF.to_tensor(apply_random_jpeg(pil_image, quality)).unsqueeze(0).to(device=device)
+
+    normalized = normalize_tensor_images(raw.to(device=device, dtype=dtype), mean, std)
+    return normalized.squeeze(0)
 
 
 def build_eval_transform(config: TransformConfig) -> transforms.Compose:
@@ -337,6 +458,9 @@ class BinaryFolderDataset(Dataset):
         max_samples_per_class: int | None = None,
         enable_strong_aug: bool = False,
         strong_transform: transforms.Compose | None = None,
+        strong_aug_prob: float = 0.4,
+        normalization_mean: Tuple[float, float, float] = (0.485, 0.456, 0.406),
+        normalization_std: Tuple[float, float, float] = (0.229, 0.224, 0.225),
     ):
         self.transform = transform
         self.blur_prob = blur_prob
@@ -346,6 +470,9 @@ class BinaryFolderDataset(Dataset):
         self.mixed_mode_ratio = mixed_mode_ratio
         self.enable_strong_aug = enable_strong_aug
         self.strong_transform = strong_transform
+        self.strong_aug_prob = strong_aug_prob
+        self.normalization_mean = normalization_mean
+        self.normalization_std = normalization_std
         self.data: List[Tuple[Path, int, str]] = []
         self.ccmba_loader = CCMBADataLoader(ccmba_data_dir) if ccmba_data_dir and blur_mode in {"ccmba", "mixed"} else None
 
@@ -396,7 +523,13 @@ class BinaryFolderDataset(Dataset):
 
         if self.blur_mode == "global":
             strength = random.uniform(*self.blur_strength_range)
-            blurred = apply_blur_to_tensor(tensor_image.unsqueeze(0), self.blur_type, strength).squeeze(0)
+            blurred = apply_blur_to_normalized_tensor(
+                tensor_image,
+                self.blur_type,
+                strength,
+                self.normalization_mean,
+                self.normalization_std,
+            )
             return blurred, {
                 "mode": "global",
                 "blur_type": self.blur_type,
@@ -407,7 +540,13 @@ class BinaryFolderDataset(Dataset):
         if self.blur_mode == "ccmba":
             if self.ccmba_loader is None:
                 strength = random.uniform(*self.blur_strength_range)
-                blurred = apply_blur_to_tensor(tensor_image.unsqueeze(0), self.blur_type, strength).squeeze(0)
+                blurred = apply_blur_to_normalized_tensor(
+                    tensor_image,
+                    self.blur_type,
+                    strength,
+                    self.normalization_mean,
+                    self.normalization_std,
+                )
                 return blurred, {
                     "mode": "ccmba_fallback_global",
                     "blur_type": self.blur_type,
@@ -418,7 +557,13 @@ class BinaryFolderDataset(Dataset):
             blurred_pil, blur_mask, metadata = self.ccmba_loader.load_ccmba_blur_data(image_name, category, is_real)
             if blurred_pil is None:
                 strength = random.uniform(*self.blur_strength_range)
-                blurred = apply_blur_to_tensor(tensor_image.unsqueeze(0), self.blur_type, strength).squeeze(0)
+                blurred = apply_blur_to_normalized_tensor(
+                    tensor_image,
+                    self.blur_type,
+                    strength,
+                    self.normalization_mean,
+                    self.normalization_std,
+                )
                 return blurred, {
                     "mode": "ccmba_fallback_global",
                     "blur_type": self.blur_type,
@@ -447,7 +592,13 @@ class BinaryFolderDataset(Dataset):
                     }
 
             strength = random.uniform(*self.blur_strength_range)
-            blurred = apply_blur_to_tensor(tensor_image.unsqueeze(0), self.blur_type, strength).squeeze(0)
+            blurred = apply_blur_to_normalized_tensor(
+                tensor_image,
+                self.blur_type,
+                strength,
+                self.normalization_mean,
+                self.normalization_std,
+            )
             return blurred, {
                 "mode": "mixed_global",
                 "blur_type": self.blur_type,
@@ -470,7 +621,7 @@ class BinaryFolderDataset(Dataset):
                 if image is None:
                     raise RuntimeError(f"Failed to load image: {img_path}")
 
-                if self.enable_strong_aug and self.strong_transform is not None and random.random() < 0.4:
+                if self.enable_strong_aug and self.strong_transform is not None and random.random() < self.strong_aug_prob:
                     tensor_image = self.strong_transform(image)
                 else:
                     tensor_image = self.transform(image)
@@ -488,11 +639,15 @@ class MultiTestDataset(Dataset):
         transform: transforms.Compose,
         blur_strength_range: Tuple[float, float] = (0.1, 0.3),
         blur_type: str = "motion",
+        normalization_mean: Tuple[float, float, float] = (0.485, 0.456, 0.406),
+        normalization_std: Tuple[float, float, float] = (0.229, 0.224, 0.225),
     ):
         self.dataset_config = dataset_config
         self.transform = transform
         self.blur_strength_range = blur_strength_range
         self.blur_type = blur_type
+        self.normalization_mean = normalization_mean
+        self.normalization_std = normalization_std
         self.data: List[Tuple[Path, int, str]] = []
 
         if dataset_config["type"] == "simple":
@@ -528,7 +683,13 @@ class MultiTestDataset(Dataset):
 
     def apply_blur_augmentation(self, tensor_image: torch.Tensor):
         strength = random.uniform(*self.blur_strength_range)
-        blurred = apply_blur_to_tensor(tensor_image.unsqueeze(0), self.blur_type, strength).squeeze(0)
+        blurred = apply_blur_to_normalized_tensor(
+            tensor_image,
+            self.blur_type,
+            strength,
+            self.normalization_mean,
+            self.normalization_std,
+        )
         return blurred, {
             "mode": "global",
             "blur_type": self.blur_type,

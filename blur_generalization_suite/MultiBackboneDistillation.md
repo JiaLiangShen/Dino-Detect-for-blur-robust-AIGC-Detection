@@ -172,6 +172,7 @@ python blur_generalization_suite/eval_deblur_benchmark.py \
 > 注意：`--dinov3-student-path` 这个参数名是历史遗留，其实可以传**任意家族**的师生 checkpoint；脚本会按 checkpoint 里的 `backbone_family` 自动重建对应骨干。
 
 ### 5.3 own_benchmark 批量评估
+
 ```bash
 python blur_generalization_suite/own_batch_eval.py \
   --model-paths \
@@ -234,8 +235,23 @@ python blur_generalization_suite/own_batch_eval.py \
 **Q1：SigLIP 2 Giant-OPT 显存爆了怎么办？**
 A：先把 `--student-batch-size` 降到 8 或 4；如果仍然不行，加 `--resize-size 224 --crop-size 224` 把分辨率降下来（精度会略掉，但架构和家族对照依然有效）。
 
-**Q2：我传了 `--backbone-preset aimv2_vitl300m` 但脚本报 `trust_remote_code` 相关错误？**
-A：AIMv2 的 `modeling_*.py` 没被同步下来。用 `huggingface-cli download` 时务必保留全部 `.py` 文件，或者直接 `git lfs clone` 整个仓库。
+**Q2：AIMv2 加载时大量打印 `Some weights of AIMv2Model were not initialized from the model checkpoint ... and are newly initialized: ['preprocessor.*', 'trunk.blocks.*', ...]`，并出现 `You are using a model of type aimv2_vision_model to instantiate a model of type aimv2`？**
+A：这是 Apple AIMv2 视觉单模仓库（`apple/aimv2-*-patch14-*`，不带 `-lit` 后缀）的经典 auto_map 错位问题：
+- 仓库里 `config.json` 的 `model_type` 是 `aimv2_vision_model`，权重布局是 **扁平的** `preprocessor.* / trunk.* / post_trunk_norm.*`；
+- 但同一份 `config.json` 的 `auto_map.AutoModel` 指向 `modeling_aimv2.AIMv2Model`，这个类是**多模态包装**，期望的 state_dict 结构是 `vision_model.* / text_model.* / logit_scale`；
+- 于是用 `AutoModel.from_pretrained(..., trust_remote_code=True)` 加载时，所有权重 key 都对不上，**整个骨干被随机初始化**，但训练不会立刻报错——你只会得到一个伪训练结果。
+
+修复：必须显式用视觉单模类 `Aimv2VisionModel`（transformers ≥ 4.55 原生提供）。代码层面 [model_zoo.py](model_zoo.py) 的 `_load_aimv2_vision_backbone` 已经强制走这条路径，并在 `Aimv2VisionModel` 不可用时直接抛 `ImportError` 让你立刻发现问题，不再静默错初始化。
+
+如果再次见到 `AIMv2 backbones require transformers>=4.46 ...` 报错，请先：
+```bash
+pip install -U "transformers>=4.46"
+python -c "from transformers import Aimv2VisionModel; print(Aimv2VisionModel)"
+```
+版本满足后重新运行训练即可。
+
+**Q2.5：AIMv2 的 `modeling_*.py` 同步问题怎么处理？**
+A：因为现在改用了 transformers 原生的 `Aimv2VisionModel`，**不再依赖仓库里的 `modeling_aimv2.py` 自定义代码**——只要 `config.json` + `model.safetensors`（或 `pytorch_model.bin`）+ `preprocessor_config.json` 三件套齐全即可。如果你以前为了 `trust_remote_code=True` 单独下过 `.py` 文件，现在可以保留也可以删掉，不会再被加载。
 
 **Q3：旧的 DINOv3 checkpoint 还能用吗？**
 A：能。所有评估脚本在 `config` 中找不到 `backbone_family` 时默认按 `"dinov3"` 加载，与原版行为完全一致。

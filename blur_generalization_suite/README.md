@@ -2,7 +2,10 @@
 该文件夹包含整理优化后的实验代码，基于原始的`train_motion.py` 和`0125_compensation/test_for_wildrf.py` 两套流程开发而来。
 本工具套件目前包含四大实验组：
 1. 骨干网络冻结：`CLIP ViT-bigG + LoRA` 和`EVA02-Large/14-448 + LoRA`
-2. `DINOv3 ViT-Large-300M / ViT-Huge-840M` 师生骨干网络对照实验
+2. 师生蒸馏骨干网络对照实验，支持：
+   - `DINOv3 ViT-Large-300M / ViT-Huge-840M`（DINO 家族基线）
+   - `SigLIP 2 Large-300M / Giant-OPT-1.1B`（Google, 2025-02，CLIP 家族）
+   - `AIMv2 Large-308M / Huge-682M`（Apple, 2024-11，ViT 家族）
 3. 不同模糊强度的`DINOv3` 特征一致性可视化分析
 4. 基于 `own_benchmark` 数据集的「去模糊 -> 检测模型」对比实验
 ## 新增功能说明
@@ -100,6 +103,16 @@ torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_back
   --blur-prob 0.1 \
   --alpha-simclr 0.3
 ```
+
+`--backbone-preset` 当前支持：
+
+| 档位 | DINO 基线 | CLIP 家族 (SigLIP 2, 2025) | ViT 家族 (AIMv2, 2024) |
+|---|---|---|---|
+| ~300M | `dinov3_vitl300m` | `siglip2_vitl300m` (~303M) | `aimv2_vitl300m` (~308M) |
+| ~840M | `dinov3_vith840m` | `siglip2_giantopt_1b` (~1.1B) | `aimv2_vith680m` (~682M) |
+| 超大 | `dinov3_vit7b` | — | — |
+
+切换为 SigLIP 2 / AIMv2 时，脚本会自动读取对应家族的 `preprocess`（resize、归一化均值方差），无需手动传 `--resize-size` / `--crop-size`。保存的 checkpoint 会写入 `backbone_family` 与 `backbone_preset`，评估脚本（`eval_teacher_student_aigc.py` / `eval_deblur_benchmark.py` / `own_batch_eval.py`）会自动按骨干家族重建网络。
 
 ### DINOv3 模糊一致性分
 ```bash

@@ -22,7 +22,12 @@ from blur_generalization_suite.data_utils import (
     validate_dataset,
 )
 from blur_generalization_suite.dataset_configs import select_datasets
-from blur_generalization_suite.model_zoo import TeacherStudentEvalWrapper, TeacherStudentNetwork, create_lora_model_from_config
+from blur_generalization_suite.model_zoo import (
+    TeacherStudentEvalWrapper,
+    create_lora_model_from_config,
+    create_teacher_student_model_from_config,
+    load_teacher_student_head_state_dict,
+)
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -59,16 +64,11 @@ def load_lora_model(model_path: str, device: torch.device):
 def load_teacher_student_model(model_path: str, branch: str, device: torch.device):
     checkpoint, state_dict = load_checkpoint_state(model_path, map_location="cpu")
     config = checkpoint.get("config", {})
+    if not config:
+        raise ValueError(f"Checkpoint at {model_path} is missing 'config'.")
     backbone_family = str(config.get("backbone_family", "dinov3"))
-    network = TeacherStudentNetwork(
-        dinov3_model_path=config["dinov3_model_id"],
-        num_classes=2,
-        projection_dim=int(config.get("projection_dim", 512)),
-        local_files_only=bool(config.get("local_files_only", True)),
-        device=device,
-        backbone_family=backbone_family,
-    )
-    missing, unexpected = network.load_state_dict(state_dict, strict=False)
+    network = create_teacher_student_model_from_config(config, device=device)
+    missing, unexpected = load_teacher_student_head_state_dict(network, state_dict, branch=branch)
     model = TeacherStudentEvalWrapper(network, branch=branch)
     transform_dict = config.get("transform_config", {"resize_size": 512, "crop_size": 448, "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]})
     preprocess_config = TransformConfig(
@@ -205,7 +205,14 @@ def main() -> None:
             model, transform_config, metadata, missing, unexpected = load_teacher_student_model(model_path, branch, DEVICE)
 
         eval_transform = build_eval_transform(transform_config)
-        dataset = MultiTestDataset(dataset_config, transform=eval_transform, blur_strength_range=(args.blur_strength, args.blur_strength), blur_type=args.blur_type)
+        dataset = MultiTestDataset(
+            dataset_config,
+            transform=eval_transform,
+            blur_strength_range=(args.blur_strength, args.blur_strength),
+            blur_type=args.blur_type,
+            normalization_mean=transform_config.mean,
+            normalization_std=transform_config.std,
+        )
         loader = DataLoader(
             dataset,
             batch_size=args.batch_size,

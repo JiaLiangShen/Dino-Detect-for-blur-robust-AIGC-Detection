@@ -39,8 +39,9 @@ from blur_generalization_suite.common import compute_binary_metrics, load_checkp
 from blur_generalization_suite.data_utils import TransformConfig, build_eval_transform
 from blur_generalization_suite.model_zoo import (
     TeacherStudentEvalWrapper,
-    TeacherStudentNetwork,
     create_lora_model_from_config,
+    create_teacher_student_model_from_config,
+    load_teacher_student_head_state_dict,
 )
 
 
@@ -172,15 +173,12 @@ def load_teacher_student_model(model_path: str, device: torch.device):
     """Load a teacher-student model and return the student branch wrapper."""
     checkpoint, state_dict = load_checkpoint_state(model_path, map_location="cpu")
     config = checkpoint.get("config", {})
-    network = TeacherStudentNetwork(
-        dinov3_model_path=config["dinov3_model_id"],
-        num_classes=2,
-        projection_dim=int(config.get("projection_dim", 512)),
-        local_files_only=bool(config.get("local_files_only", True)),
-        device=device,
-        backbone_family=str(config.get("backbone_family", "dinov3")),
+    if not config:
+        raise ValueError(f"Checkpoint at {model_path} is missing 'config'.")
+    network = create_teacher_student_model_from_config(config, device=device)
+    missing, unexpected = load_teacher_student_head_state_dict(
+        network, state_dict, branch="student"
     )
-    missing, unexpected = network.load_state_dict(state_dict, strict=False)
     wrapper = TeacherStudentEvalWrapper(network, branch="student")
     wrapper.eval()
     # Build transform from checkpoint config
@@ -256,7 +254,7 @@ def main():
     )
     parser.add_argument(
         '--data_root',
-        default='/data/app.e0016372/11ar_datasets/test/own_benchmark',
+        default='/home/work/shenjialiang/rebuttal/own_benchmark/own_final',
         type=str,
         help='Root folder containing real/ and fake/ sub-directories.',
     )

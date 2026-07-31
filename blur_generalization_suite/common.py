@@ -117,7 +117,9 @@ def extract_trainable_state_dict(model: torch.nn.Module) -> Dict[str, Any]:
 def load_checkpoint_state(path: str | Path, map_location: str | torch.device = "cpu") -> Tuple[Dict[str, Any], Dict[str, Any]]:
     checkpoint = torch.load(path, map_location=map_location)
     if isinstance(checkpoint, dict):
-        if "trainable_state_dict" in checkpoint:
+        if "head_state_dict" in checkpoint:
+            state_dict = checkpoint["head_state_dict"]
+        elif "trainable_state_dict" in checkpoint:
             state_dict = checkpoint["trainable_state_dict"]
         elif "adapter_state_dict" in checkpoint:
             state_dict = checkpoint["adapter_state_dict"]

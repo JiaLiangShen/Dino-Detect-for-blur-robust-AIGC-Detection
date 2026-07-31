@@ -1,5 +1,7 @@
 ﻿import json
 import random
+# Legacy snapshot retained for compatibility with old ad-hoc imports.
+# Maintained 0424 entry points import blur_generalization_suite.data_utils.
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path

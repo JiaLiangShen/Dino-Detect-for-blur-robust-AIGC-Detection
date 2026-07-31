@@ -1,5 +1,7 @@
 ﻿import json
 import math
+# Legacy snapshot retained for compatibility with old ad-hoc imports.
+# Maintained 0424 entry points import blur_generalization_suite.model_zoo.
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path

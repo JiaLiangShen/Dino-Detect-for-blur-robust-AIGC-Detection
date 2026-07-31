@@ -399,6 +399,8 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         blur_type=args.blur_type,
         enable_strong_aug=True,
         strong_transform=strong_train_transform,
+        normalization_mean=transform_config.mean,
+        normalization_std=transform_config.std,
     )
     student_dataset = BinaryFolderDataset(
         root_folder=args.train_root,
@@ -411,6 +413,8 @@ def main_distributed(rank: int, local_rank: int, world_size: int, args: argparse
         ccmba_data_dir=args.ccmba_data_dir,
         enable_strong_aug=True,
         strong_transform=strong_train_transform,
+        normalization_mean=transform_config.mean,
+        normalization_std=transform_config.std,
     )
 
     teacher_sampler = DistributedSampler(teacher_dataset, num_replicas=world_size, rank=rank, shuffle=True, drop_last=True)

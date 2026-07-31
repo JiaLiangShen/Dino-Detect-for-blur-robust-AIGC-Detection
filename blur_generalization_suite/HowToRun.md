@@ -158,6 +158,71 @@ torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_back
   --alpha-simclr 0.3
 ```
 
+### 2025 新骨干对照：SigLIP 2 / AIMv2
+为和 DINOv3 做 apples-to-apples 对比，现已新增以下 `--backbone-preset` 取值，涵盖约 300M 与约 840M 两档、各提供一个 CLIP 家族（SigLIP 2）与一个纯 ViT 家族（AIMv2）候选：
+
+| 预设 | HF 仓库 | 参数规模 | 家族 |
+|---|---|---|---|
+| `siglip2_vitl300m` | `google/siglip2-large-patch16-256` | ~303M vision | CLIP (SigLIP 2, 2025-02) |
+| `aimv2_vitl300m` | `apple/aimv2-large-patch14-224` | ~308M | ViT (AIMv2, 2024-11) |
+| `aimv2_vith680m` | `apple/aimv2-huge-patch14-336` | ~682M（对标 840M 的下界） | ViT (AIMv2) |
+| `siglip2_giantopt_1b` | `google/siglip2-giant-opt-patch16-256` | ~1.1B vision（对标 840M 的上界） | CLIP (SigLIP 2) |
+
+权重建议下载到与现有 LoRA 骨干相同的根目录：
+```
+${BLUR_GENERALIZATION_HF_BACKBONE_ROOT:-/nas_train/app.e0016372/models/blur_generalization_hf_backbones}/
+  google/siglip2-large-patch16-256/
+  google/siglip2-giant-opt-patch16-256/
+  apple/aimv2-large-patch14-224/
+  apple/aimv2-huge-patch14-336/
+```
+
+#### 训练 SigLIP 2 Large（~300M 档 · CLIP 家族）
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
+  --backbone-preset siglip2_vitl300m \
+  --data-preset sdv14 \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
+```
+
+#### 训练 AIMv2 Large（~300M 档 · ViT 家族）
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
+  --backbone-preset aimv2_vitl300m \
+  --data-preset sdv14 \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
+```
+
+#### 训练 AIMv2 Huge（~840M 档 · ViT 家族，682M 为最接近的下界）
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
+  --backbone-preset aimv2_vith680m \
+  --data-preset sdv14 \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
+```
+
+#### 训练 SigLIP 2 Giant-OPT（~840M 档 · CLIP 家族，1.1B 为最接近的上界）
+```bash
+torchrun --nproc_per_node=8 blur_generalization_suite/train_teacher_student_backbones.py \
+  --backbone-preset siglip2_giantopt_1b \
+  --data-preset sdv14 \
+  --blur-mode mixed \
+  --blur-type motion \
+  --blur-prob 0.1 \
+  --alpha-simclr 0.3
+```
+
+> 说明：脚本会自动根据 preset 解析 `backbone_family`（`dinov3` / `siglip2` / `aimv2`）以及原生 resize / 归一化配置（SigLIP 2 使用 (0.5,0.5,0.5)，AIMv2 使用 CLIP 均值方差）。训练保存的 checkpoint 同时写入 `backbone_family` 与 `backbone_preset`，所有师生评估脚本会自动兼容。如果需要覆盖分辨率或归一化，可像以前一样传 `--resize-size` / `--crop-size`。
+
 ### 在 AIGC 基准数据集评估学生模型
 ```bash
 python blur_generalization_suite/eval_teacher_student_aigc.py \

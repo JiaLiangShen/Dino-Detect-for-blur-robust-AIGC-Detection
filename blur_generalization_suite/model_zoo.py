@@ -26,7 +26,7 @@ from .data_utils import TransformConfig
 
 HF_BACKBONE_ROOT = os.environ.get(
     "BLUR_GENERALIZATION_HF_BACKBONE_ROOT",
-    "/nas_train/app.e0016372/models",
+    "/nas_train/app.e0016372/models/blur_generalization_hf_backbones",
 )
 
 
@@ -148,6 +148,12 @@ DEFAULT_PREPROCESS["clip"] = TransformConfig(
     mean=(0.48145466, 0.4578275, 0.40821073),
     std=(0.26862954, 0.26130258, 0.27577711),
 )
+DEFAULT_PREPROCESS["eva"] = TransformConfig(
+    resize_size=336,
+    crop_size=336,
+    mean=(0.485, 0.456, 0.406),
+    std=(0.229, 0.224, 0.225),
+)
 
 
 @dataclass(frozen=True)
@@ -156,6 +162,8 @@ class DistillationBackboneSpec:
     backbone_family: str
     preprocess: TransformConfig
     description: str
+    loader_backend: str = "transformers_auto"
+    architecture_name: str | None = None
 
 
 DISTILLATION_BACKBONE_SPECS: Dict[str, "DistillationBackboneSpec"] = {
@@ -213,6 +221,40 @@ DISTILLATION_BACKBONE_SPECS: Dict[str, "DistillationBackboneSpec"] = {
         ),
         description="AIMv2 Huge/14@336 (~682M, Apple, 2024-11) - closest ViT below DINOv3 840M.",
     ),
+    "aimv2_huge_840m": DistillationBackboneSpec(
+        local_dir=f"{HF_BACKBONE_ROOT}/apple/aimv2-huge-patch14-336",
+        backbone_family="aimv2",
+        preprocess=TransformConfig(
+            resize_size=336,
+            crop_size=336,
+            mean=(0.48145466, 0.4578275, 0.40821073),
+            std=(0.26862954, 0.26130258, 0.27577711),
+        ),
+        description=(
+            "AIMv2 Huge/14@336 used for the paper's ~840M comparison tier. "
+            "The public vision checkpoint is also commonly reported as ~682M parameters."
+        ),
+    ),
+    "clip_vit_bigg_1_84b": DistillationBackboneSpec(
+        local_dir=CLIP_BIGG_LORA_SPEC.local_dir,
+        backbone_family="clip",
+        preprocess=CLIP_BIGG_LORA_SPEC.preprocess,
+        description="CLIP ViT-bigG/14 (~1.84B, LAION/OpenCLIP).",
+        loader_backend="transformers_clip",
+    ),
+    "eva_giant_1_1b": DistillationBackboneSpec(
+        local_dir=EVA_GIANT_LORA_SPEC.local_dir,
+        backbone_family="eva",
+        preprocess=TransformConfig(
+            resize_size=336,
+            crop_size=336,
+            mean=(0.485, 0.456, 0.406),
+            std=(0.229, 0.224, 0.225),
+        ),
+        description="EVA-GIANT/14@336 (~1.1B, timm).",
+        loader_backend="timm",
+        architecture_name=EVA_GIANT_LORA_SPEC.architecture_name,
+    ),
     "siglip2_giantopt_1b": DistillationBackboneSpec(
         local_dir=f"{HF_BACKBONE_ROOT}/google/siglip2-giant-opt-patch16-256",
         backbone_family="siglip2",
@@ -239,7 +281,7 @@ DEFAULT_DINOV3_MODELS: Dict[str, str] = {
 }
 
 
-SUPPORTED_BACKBONE_FAMILIES = ("dinov3", "siglip2", "aimv2", "clip")
+SUPPORTED_BACKBONE_FAMILIES = ("dinov3", "siglip2", "aimv2", "clip", "eva")
 
 
 def _require_dependency(module: Any, package_name: str, use_case: str) -> None:
@@ -433,15 +475,32 @@ class LoRALinear(nn.Module):
 
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha: float = 1.0, gamma: float = 2.0):
+    def __init__(
+        self,
+        alpha: float | Sequence[float] | torch.Tensor | None = 1.0,
+        gamma: float = 2.0,
+    ):
         super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
+        self.gamma = float(gamma)
+        if alpha is None:
+            self.alpha_scalar = None
+            self.register_buffer("alpha_weight", None)
+        elif isinstance(alpha, (float, int)):
+            self.alpha_scalar = float(alpha)
+            self.register_buffer("alpha_weight", None)
+        else:
+            self.alpha_scalar = None
+            self.register_buffer("alpha_weight", torch.as_tensor(alpha, dtype=torch.float32))
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         ce = F.cross_entropy(logits, targets, reduction="none")
         pt = torch.exp(-ce)
-        loss = self.alpha * (1 - pt) ** self.gamma * ce
+        loss = (1.0 - pt).pow(self.gamma) * ce
+        if self.alpha_weight is not None:
+            alpha_weight = self.alpha_weight.to(device=logits.device, dtype=logits.dtype)
+            loss = loss * alpha_weight.gather(0, targets)
+        elif self.alpha_scalar is not None:
+            loss = loss * self.alpha_scalar
         return loss.mean()
 
 
@@ -465,6 +524,47 @@ class SimCLRLoss(nn.Module):
         labels = torch.arange(features.size(0), device=features.device)
         loss = F.cross_entropy(similarity, labels)
         return loss
+
+
+class OrdinalContrastiveLoss(nn.Module):
+    """Severity-aware contrastive objective from the paper's Eq. (7).
+
+    ``features`` and ``severities`` are grouped by source image with shapes
+    ``[batch, views, dim]`` and ``[batch, views]``. Candidate views whose blur
+    gap is at least as large as the selected pair form the denominator, which
+    enforces monotonically decreasing similarity as severity diverges.
+    """
+
+    def __init__(self, temperature: float = 0.07):
+        super().__init__()
+        self.temperature = float(temperature)
+
+    def forward(self, features: torch.Tensor, severities: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 3:
+            raise ValueError("features must have shape [batch, views, dim]")
+        if severities.shape != features.shape[:2]:
+            raise ValueError("severities must have shape [batch, views]")
+        if features.size(1) < 2:
+            return features.sum() * 0.0
+
+        normalized = F.normalize(features, p=2, dim=-1)
+        similarities = torch.matmul(normalized, normalized.transpose(1, 2)) / self.temperature
+        severity_gaps = (severities.unsqueeze(2) - severities.unsqueeze(1)).abs()
+        view_count = features.size(1)
+        losses: List[torch.Tensor] = []
+
+        for anchor in range(view_count):
+            for candidate in range(view_count):
+                if candidate == anchor:
+                    continue
+                candidate_gap = severity_gaps[:, anchor, candidate].unsqueeze(1)
+                eligible = severity_gaps[:, anchor, :] >= (candidate_gap - 1e-8)
+                eligible[:, anchor] = False
+                logits = similarities[:, anchor, :].masked_fill(~eligible, float("-inf"))
+                log_denominator = torch.logsumexp(logits, dim=1)
+                losses.append(-(similarities[:, anchor, candidate] - log_denominator))
+
+        return torch.stack(losses, dim=0).mean()
 
 
 def _initialize_linear_stack(module: nn.Module) -> None:
@@ -624,32 +724,7 @@ class LoraVisionBinaryClassifier(nn.Module):
         raise ValueError(f"Cannot infer hidden_size for {self.model_family}")
 
     def _extract_timm_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
-        features = self.backbone.forward_features(pixel_values) if hasattr(self.backbone, "forward_features") else self.backbone(pixel_values)
-
-        if isinstance(features, dict):
-            for key in ("x_norm_clstoken", "pre_logits", "features"):
-                if key in features:
-                    features = features[key]
-                    break
-        if isinstance(features, (tuple, list)):
-            features = features[0]
-
-        if isinstance(features, torch.Tensor) and features.ndim == 3:
-            if hasattr(self.backbone, "forward_head"):
-                try:
-                    head_features = self.backbone.forward_head(features, pre_logits=True)
-                except TypeError:
-                    head_features = self.backbone.forward_head(features)
-                if isinstance(head_features, torch.Tensor) and head_features.ndim == 2:
-                    return head_features.float()
-            return features[:, 0].float()
-
-        if isinstance(features, torch.Tensor) and features.ndim == 4:
-            return features.mean(dim=(-2, -1)).float()
-
-        if isinstance(features, torch.Tensor):
-            return features.float()
-        raise TypeError(f"Unsupported timm feature type: {type(features)}")
+        return _extract_timm_backbone_features(self.backbone, pixel_values)
 
     def extract_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
         if self.loader_backend == "transformers_clip":
@@ -674,32 +749,144 @@ class LoraVisionBinaryClassifier(nn.Module):
         return logits
 
 
+def _load_timm_vision_backbone(
+    model_path: str,
+    architecture_name: str | None,
+    local_files_only: bool,
+) -> nn.Module:
+    _require_dependency(timm, "timm", "timm vision backbones")
+    resolved_architecture = architecture_name or Path(model_path).name
+    backbone_dir = Path(model_path)
+    if backbone_dir.exists():
+        checkpoint_path = _find_first_existing_file(
+            backbone_dir,
+            ("model.safetensors", "pytorch_model.bin", "model.pth", "checkpoint.pth"),
+        )
+        if checkpoint_path is None:
+            raise FileNotFoundError(
+                f"No supported weight file found under {backbone_dir}. "
+                "Expected model.safetensors, pytorch_model.bin, model.pth, or checkpoint.pth."
+            )
+        return timm.create_model(
+            resolved_architecture,
+            pretrained=False,
+            num_classes=0,
+            checkpoint_path=str(checkpoint_path),
+        )
+
+    if _looks_like_filesystem_path(model_path):
+        raise FileNotFoundError(f"Backbone path does not exist: {model_path}")
+    if local_files_only:
+        raise FileNotFoundError(
+            "local_files_only=True but the timm backbone directory was not found locally: "
+            f"{model_path}"
+        )
+
+    resolved_name = model_path
+    if "/" in model_path and not model_path.startswith("hf-hub:"):
+        resolved_name = f"hf-hub:{model_path}"
+    return timm.create_model(resolved_name, pretrained=True, num_classes=0)
+
+
+def _extract_timm_backbone_features(backbone: nn.Module, pixel_values: torch.Tensor) -> torch.Tensor:
+    features = backbone.forward_features(pixel_values) if hasattr(backbone, "forward_features") else backbone(pixel_values)
+    if isinstance(features, dict):
+        for key in ("x_norm_clstoken", "pre_logits", "features"):
+            if key in features:
+                features = features[key]
+                break
+    if isinstance(features, (tuple, list)):
+        features = features[0]
+
+    if isinstance(features, torch.Tensor) and features.ndim == 3:
+        if hasattr(backbone, "forward_head"):
+            try:
+                pooled = backbone.forward_head(features, pre_logits=True)
+            except TypeError:
+                pooled = backbone.forward_head(features)
+            if isinstance(pooled, torch.Tensor) and pooled.ndim == 2:
+                return pooled.float()
+        return features[:, 0].float()
+    if isinstance(features, torch.Tensor) and features.ndim == 4:
+        return features.mean(dim=(-2, -1)).float()
+    if isinstance(features, torch.Tensor):
+        return features.float()
+    raise TypeError(f"Unsupported timm feature type: {type(features)}")
+
+
+def _load_aimv2_vision_backbone(model_path: str, local_files_only: bool) -> nn.Module:
+    """Load Apple AIMv2 strictly through the vision-only class.
+
+    The vision-only checkpoints (``apple/aimv2-*-patch14-*``, *not* the ``-lit``
+    variants) declare ``model_type=aimv2_vision_model`` and ship a flat state dict
+    with keys ``preprocessor.* / trunk.* / post_trunk_norm.*``. Their ``auto_map``
+    however routes ``AutoModel -> modeling_aimv2.AIMv2Model``, which is the
+    *multimodal* wrapper expecting ``vision_model.* / text_model.* / logit_scale``.
+    Going through ``AutoModel(..., trust_remote_code=True)`` therefore silently
+    loads zero weights and "newly initialises" the entire backbone. We force the
+    dedicated ``Aimv2VisionModel`` class (native in transformers >= 4.55) so the
+    state dict prefixes line up.
+    """
+    try:
+        from transformers import Aimv2VisionModel  # type: ignore
+    except ImportError:
+        try:
+            from transformers.models.aimv2.modeling_aimv2 import Aimv2VisionModel  # type: ignore
+        except ImportError as exc:
+            raise ImportError(
+                "AIMv2 backbones require transformers>=4.55 with native Aimv2VisionModel. "
+                "Please `pip install -U transformers` (or pin >=4.55) and retry. "
+                "Loading AIMv2 vision-only checkpoints through AutoModel(trust_remote_code=True) "
+                "incorrectly routes to the multimodal AIMv2Model and silently leaves all "
+                "backbone weights randomly initialised."
+            ) from exc
+
+    return Aimv2VisionModel.from_pretrained(
+        model_path,
+        local_files_only=local_files_only,
+        torch_dtype=torch.float32,
+        low_cpu_mem_usage=True,
+    )
+
+
 def _load_distillation_backbone(
     model_path: str,
     backbone_family: str,
     local_files_only: bool,
+    loader_backend: str | None = None,
+    architecture_name: str | None = None,
 ) -> nn.Module:
     """Load just the vision tower for a distillation backbone.
 
-    Supports ``dinov3`` / ``aimv2`` (vision-only, via AutoModel w/ trust_remote_code),
+    Supports ``dinov3`` (AutoModel w/ trust_remote_code, vision-only),
     ``siglip2`` (AutoModel returns the full Siglip2Model -> extract ``vision_model``),
-    and ``clip`` (dedicated CLIPVisionModel loader).
+    ``aimv2`` (dedicated Aimv2VisionModel to bypass auto_map misrouting), and
+    ``clip`` (dedicated CLIPVisionModel loader).
     """
-    if backbone_family == "clip":
-        _require_dependency(CLIPVisionModel, "transformers", "CLIP vision backbones")
-        return CLIPVisionModel.from_pretrained(model_path, local_files_only=local_files_only)
+    resolved_backend = loader_backend or {
+        "clip": "transformers_clip",
+        "eva": "timm",
+    }.get(backbone_family, "transformers_auto")
 
-    if backbone_family == "aimv2":
-        from transformers import Aimv2VisionModel
-        return Aimv2VisionModel.from_pretrained(
+    if resolved_backend == "transformers_clip":
+        _require_dependency(CLIPVisionModel, "transformers", "CLIP vision backbones")
+        return CLIPVisionModel.from_pretrained(
             model_path,
-            trust_remote_code=True,
             local_files_only=local_files_only,
             torch_dtype=torch.float32,
-            device_map=None,
             low_cpu_mem_usage=True,
         )
-        
+
+    if resolved_backend == "timm":
+        return _load_timm_vision_backbone(
+            model_path=model_path,
+            architecture_name=architecture_name or EVA_GIANT_LORA_SPEC.architecture_name,
+            local_files_only=local_files_only,
+        )
+
+    if backbone_family == "aimv2":
+        return _load_aimv2_vision_backbone(model_path, local_files_only=local_files_only)
+
     _require_dependency(AutoModel, "transformers", "vision backbones")
     full_model = AutoModel.from_pretrained(
         model_path,
@@ -709,8 +896,8 @@ def _load_distillation_backbone(
         device_map=None,
         low_cpu_mem_usage=True,
     )
-    # Siglip2Model / CLIPModel expose a ``vision_model`` submodule; DINOv3 and AIMv2
-    # are vision-only and come back as the vision encoder directly.
+    # Siglip2Model / CLIPModel expose a ``vision_model`` submodule; DINOv3 comes
+    # back as the vision encoder directly.
     return getattr(full_model, "vision_model", full_model)
 
 
@@ -718,7 +905,10 @@ def _extract_backbone_features(
     backbone: nn.Module,
     pixel_values: torch.Tensor,
     backbone_family: str,
+    loader_backend: str | None = None,
 ) -> torch.Tensor:
+    if loader_backend == "timm" or backbone_family == "eva":
+        return _extract_timm_backbone_features(backbone, pixel_values)
     outputs = backbone(pixel_values=pixel_values, return_dict=True)
     pooler = getattr(outputs, "pooler_output", None)
     if pooler is not None:
@@ -741,6 +931,8 @@ class ImprovedDinoV3Adapter(nn.Module):
         local_files_only: bool = True,
         device: str | torch.device = "cuda",
         backbone_family: str = "dinov3",
+        loader_backend: str | None = None,
+        architecture_name: str | None = None,
     ):
         super().__init__()
         if backbone_family not in SUPPORTED_BACKBONE_FAMILIES:
@@ -750,10 +942,17 @@ class ImprovedDinoV3Adapter(nn.Module):
             )
         self.model_path = model_path
         self.backbone_family = backbone_family
+        self.loader_backend = loader_backend or {
+            "clip": "transformers_clip",
+            "eva": "timm",
+        }.get(backbone_family, "transformers_auto")
+        self.architecture_name = architecture_name
         self.backbone = _load_distillation_backbone(
             model_path=model_path,
             backbone_family=backbone_family,
             local_files_only=local_files_only,
+            loader_backend=self.loader_backend,
+            architecture_name=architecture_name,
         )
         self.hidden_size = getattr(getattr(self.backbone, "config", None), "hidden_size", None)
         if self.hidden_size is None:
@@ -770,6 +969,7 @@ class ImprovedDinoV3Adapter(nn.Module):
         self.hidden_size = int(self.hidden_size)
         for param in self.backbone.parameters():
             param.requires_grad = False
+        self.backbone.eval()
 
         projection_layers: List[nn.Module] = []
         current_dim = self.hidden_size
@@ -807,8 +1007,17 @@ class ImprovedDinoV3Adapter(nn.Module):
     def extract_features(self, pixel_values: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             return _extract_backbone_features(
-                self.backbone, pixel_values, self.backbone_family
+                self.backbone,
+                pixel_values,
+                self.backbone_family,
+                loader_backend=self.loader_backend,
             )
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        # A frozen encoder must not reactivate dropout/drop-path when the heads train.
+        self.backbone.eval()
+        return self
 
     def forward(self, pixel_values: torch.Tensor, return_features: bool = False):
         raw_features = self.extract_features(pixel_values)
@@ -846,6 +1055,8 @@ class TeacherStudentNetwork(nn.Module):
         local_files_only: bool = True,
         device: str | torch.device = "cuda",
         backbone_family: str = "dinov3",
+        loader_backend: str | None = None,
+        architecture_name: str | None = None,
     ):
         super().__init__()
         self.backbone_family = backbone_family
@@ -858,6 +1069,8 @@ class TeacherStudentNetwork(nn.Module):
             local_files_only=local_files_only,
             device=device,
             backbone_family=backbone_family,
+            loader_backend=loader_backend,
+            architecture_name=architecture_name,
         )
         self.student_projection = nn.Sequential(
             nn.Linear(self.teacher.hidden_size, projection_dim * 2),
@@ -922,6 +1135,10 @@ class ImprovedTeacherStudentLoss(nn.Module):
         alpha_cls: float = 1.0,
         alpha_feature: float = 0.5,
         alpha_simclr: float = 0.3,
+        alpha_ordinal: float | None = None,
+        classification_loss: str = "focal",
+        focal_alpha: float | Sequence[float] | torch.Tensor | None = 1.0,
+        focal_gamma: float = 2.0,
     ):
         super().__init__()
         self.temperature = temperature
@@ -929,9 +1146,18 @@ class ImprovedTeacherStudentLoss(nn.Module):
         self.alpha_cls = alpha_cls
         self.alpha_feature = alpha_feature
         self.alpha_simclr = alpha_simclr
-        self.ce_loss = nn.CrossEntropyLoss()
+        self.alpha_ordinal = alpha_simclr if alpha_ordinal is None else alpha_ordinal
+        if classification_loss not in {"focal", "cross_entropy"}:
+            raise ValueError("classification_loss must be 'focal' or 'cross_entropy'")
+        self.classification_loss_name = classification_loss
+        self.classification_objective = (
+            FocalLoss(alpha=focal_alpha, gamma=focal_gamma)
+            if classification_loss == "focal"
+            else nn.CrossEntropyLoss()
+        )
         self.kl_loss = nn.KLDivLoss(reduction="batchmean")
         self.simclr_loss = SimCLRLoss(temperature=temperature)
+        self.ordinal_loss = OrdinalContrastiveLoss(temperature=temperature)
 
     def distillation_loss(self, student_logits: torch.Tensor, teacher_logits: torch.Tensor) -> torch.Tensor:
         teacher_probs = F.softmax(teacher_logits / self.temperature, dim=1)
@@ -954,12 +1180,14 @@ class ImprovedTeacherStudentLoss(nn.Module):
         labels: torch.Tensor | None = None,
         mode: str = "student",
         student_features_aug: torch.Tensor | None = None,
+        ordinal_features: torch.Tensor | None = None,
+        ordinal_severities: torch.Tensor | None = None,
     ) -> Dict[str, torch.Tensor]:
         if labels is None:
             raise ValueError("labels must be provided")
 
         if mode == "teacher":
-            cls_loss = self.ce_loss(student_logits, labels)
+            cls_loss = self.classification_objective(student_logits, labels)
             zero = torch.tensor(0.0, device=cls_loss.device)
             return {
                 "total_loss": cls_loss,
@@ -967,15 +1195,21 @@ class ImprovedTeacherStudentLoss(nn.Module):
                 "distill_loss": zero,
                 "feature_loss": zero,
                 "simclr_loss": zero,
+                "ordinal_loss": zero,
             }
 
         if teacher_features is None or teacher_logits is None:
             raise ValueError("teacher_features and teacher_logits are required in student mode")
 
-        cls_loss = self.ce_loss(student_logits, labels)
+        cls_loss = self.classification_objective(student_logits, labels)
         distill_loss = self.distillation_loss(student_logits, teacher_logits)
         feature_loss = self.feature_alignment_loss(student_features, teacher_features)
         simclr_loss = torch.tensor(0.0, device=cls_loss.device)
+        ordinal_loss = torch.tensor(0.0, device=cls_loss.device)
+        if ordinal_features is not None:
+            if ordinal_severities is None:
+                raise ValueError("ordinal_severities are required with ordinal_features")
+            ordinal_loss = self.ordinal_loss(ordinal_features, ordinal_severities)
         if student_features_aug is not None:
             simclr_loss = self.simclr_loss(torch.cat([student_features, student_features_aug], dim=0))
 
@@ -984,6 +1218,7 @@ class ImprovedTeacherStudentLoss(nn.Module):
             + self.alpha_distill * distill_loss
             + self.alpha_feature * feature_loss
             + self.alpha_simclr * simclr_loss
+            + self.alpha_ordinal * ordinal_loss
         )
         return {
             "total_loss": total_loss,
@@ -991,6 +1226,7 @@ class ImprovedTeacherStudentLoss(nn.Module):
             "distill_loss": distill_loss,
             "feature_loss": feature_loss,
             "simclr_loss": simclr_loss,
+            "ordinal_loss": ordinal_loss,
         }
 
 
@@ -1008,6 +1244,83 @@ class TeacherStudentEvalWrapper(nn.Module):
             return logits
         _, logits = self.network.forward_student(pixel_values)
         return logits
+
+
+HEAD_STATE_PREFIXES = (
+    "teacher.projection.",
+    "teacher.classifier.",
+    "student_projection.",
+    "student_classifier.",
+)
+
+
+def extract_teacher_student_head_state_dict(network: nn.Module) -> Dict[str, torch.Tensor]:
+    state_dict = network.state_dict()
+    return {
+        name: value.detach().cpu()
+        for name, value in state_dict.items()
+        if name.startswith(HEAD_STATE_PREFIXES)
+    }
+
+
+def load_teacher_student_head_state_dict(
+    network: nn.Module,
+    state_dict: Dict[str, torch.Tensor],
+    branch: str,
+) -> Tuple[List[str], List[str]]:
+    """Load a compact head checkpoint and verify the requested inference branch."""
+    if branch not in {"teacher", "student"}:
+        raise ValueError("branch must be 'teacher' or 'student'")
+    required_prefixes = (
+        ("teacher.projection.", "teacher.classifier.")
+        if branch == "teacher"
+        else ("student_projection.", "student_classifier.")
+    )
+    expected_names = {
+        name
+        for name in network.state_dict()
+        if name.startswith(required_prefixes)
+    }
+    provided_names = {
+        name
+        for name in state_dict
+        if name.startswith(required_prefixes)
+    }
+    absent = sorted(expected_names - provided_names)
+    if absent:
+        raise RuntimeError(
+            f"Checkpoint is missing {branch}-head parameters: {absent}"
+        )
+
+    missing, unexpected = network.load_state_dict(state_dict, strict=False)
+    missing_required = sorted(name for name in missing if name in expected_names)
+    unexpected_required = sorted(
+        name for name in unexpected if name.startswith(required_prefixes)
+    )
+    if missing_required or unexpected_required:
+        raise RuntimeError(
+            f"{branch.capitalize()}-head checkpoint mismatch: "
+            f"missing={missing_required}, unexpected={unexpected_required}"
+        )
+    return list(missing), list(unexpected)
+
+
+def create_teacher_student_model_from_config(
+    config: Dict[str, object],
+    device: str | torch.device,
+    backbone_path_override: str | None = None,
+) -> TeacherStudentNetwork:
+    backbone_path = backbone_path_override or str(config["dinov3_model_id"])
+    return TeacherStudentNetwork(
+        dinov3_model_path=backbone_path,
+        num_classes=int(config.get("num_classes", 2)),
+        projection_dim=int(config.get("projection_dim", 512)),
+        local_files_only=bool(config.get("local_files_only", True)),
+        device=device,
+        backbone_family=str(config.get("backbone_family", "dinov3")),
+        loader_backend=(str(config["loader_backend"]) if config.get("loader_backend") else None),
+        architecture_name=(str(config["architecture_name"]) if config.get("architecture_name") else None),
+    )
 
 
 def create_lora_model_from_config(config: Dict[str, object], device: str | torch.device) -> LoraVisionBinaryClassifier:
