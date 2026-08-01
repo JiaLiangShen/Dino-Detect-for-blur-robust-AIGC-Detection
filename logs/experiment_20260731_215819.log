@@ -6299,3 +6299,5 @@ Artifacts: blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_cla
 classification_only epoch 1/5: loss=0.0134, acc=98.42%
 /nas_train/app.e0016372/miniforge3/envs/swift2/lib/python3.12/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
   return func(*args, **kwargs)
+classification_only epoch 2/5: loss=0.0018, acc=99.77%
+classification_only epoch 3/5: loss=0.0010, acc=99.88%
