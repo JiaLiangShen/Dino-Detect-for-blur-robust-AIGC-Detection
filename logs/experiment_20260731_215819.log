@@ -6421,3 +6421,4 @@ Teacher epoch 3/3: loss=0.0001, acc=99.99%
   with autocast(enabled=device.type == "cuda"):
 /nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
   with autocast(enabled=device.type == "cuda"):
+student epoch 1/5: loss=0.4716, acc=98.40%
