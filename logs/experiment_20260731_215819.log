@@ -6387,3 +6387,37 @@ Artifacts: blur_generalization_suite/outputs/paper_parity/dinov3_vit7b_sdv14_din
 Teacher epoch 1/3: loss=0.0070, acc=99.21%
 /nas_train/app.e0016372/miniforge3/envs/swift2/lib/python3.12/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
   return func(*args, **kwargs)
+Teacher epoch 2/3: loss=0.0004, acc=99.95%
+Teacher epoch 3/3: loss=0.0001, acc=99.99%
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:938: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  student_scaler = GradScaler(enabled=device.type == "cuda")
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
+/nas_train/app.e0016372/projects/Dino-Detect-for-blur-robust-AIGC-Detection/blur_generalization_suite/train_paper_backbones.py:563: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast(enabled=device.type == "cuda"):
