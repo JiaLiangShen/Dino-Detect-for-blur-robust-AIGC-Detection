@@ -6424,3 +6424,4 @@ Teacher epoch 3/3: loss=0.0001, acc=99.99%
 student epoch 1/5: loss=0.4716, acc=98.40%
 student epoch 2/5: loss=0.3230, acc=99.78%
 student epoch 3/5: loss=0.2783, acc=99.84%
+student epoch 4/5: loss=0.2633, acc=99.88%
